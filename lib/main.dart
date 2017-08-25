@@ -59,13 +59,18 @@ class _MyHomePageState extends State<MyHomePage> {
     String path = "$dir/demo.db";
 
     // open the database
-    Database database = await openDatabase(path, version: 3,
+    Database database = await openDatabase(path, version: 2,
       onCreate: (Database db, int version) async {
       // When creating the db, create the table
       await db.execute(
-        "CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER, num REAL, her INTEGER)");
-    });;
-    
+        "CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER, num REAL, her TEXT)");
+      },
+      onUpgrade: (Database db, int oldVersion, int newVersion) async {
+        assert(oldVersion == 1);
+        assert(newVersion == 2);
+        await db.execute("ALTER TABLE Test ADD her TEXT");
+      }
+    );
     return database;
   }
   
