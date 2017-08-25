@@ -5,6 +5,7 @@ dependencies:
   flutter:
     sdk: flutter
   path_provider: "^0.2.1+1"
+  sqflite: any
   
 dev_dependencies:
   flutter_test:

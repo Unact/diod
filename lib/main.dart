@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 void main() {
   runApp(new MyApp());
@@ -34,6 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _blabla = "";
   
   final TextEditingController _controller = new TextEditingController();
+  Database _database;
   
   @override
   void initState() {
@@ -44,6 +46,27 @@ class _MyHomePageState extends State<MyHomePage> {
         _controller.text = value;
       });
     });
+    _initDB().then((Database db) {
+      setState(() {
+        _database = db;
+      });
+    });
+  }
+  
+  Future<Database> _initDB() async {
+    // Get a location using path_provider
+    String dir = (await getApplicationDocumentsDirectory()).path;
+    String path = "$dir/demo.db";
+
+    // open the database
+    Database database = await openDatabase(path, version: 3,
+      onCreate: (Database db, int version) async {
+      // When creating the db, create the table
+      await db.execute(
+        "CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER, num REAL, her INTEGER)");
+    });;
+    
+    return database;
   }
   
   Future<File> _getLocalFile() async {
@@ -69,6 +92,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     // write the variable as a string to the file
     await (await _getLocalFile()).writeAsString('$_blabla');
+    
+    // Insert some records in a transaction
+    await _database.inTransaction(() async {
+      int id1 = await _database.rawInsert('INSERT INTO Test(name, value, num) VALUES("$_blabla", 1234, 456.789)');
+      print("inserted1: $id1"); 
+    });
   }
   
   @override
