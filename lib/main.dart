@@ -36,6 +36,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _blabla = "her";
   String _renew = "";
+  int    _cnt = 0;
   
   final TextEditingController _controller = new TextEditingController();
   Database _database;
@@ -50,10 +51,20 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     });
     _initDB().then((Database db) {
-      setState(() {
-        _database = db;
-      });
+        _getCnt(db).then((int cc) {
+          setState(() {
+            _database = db;
+            _cnt = cc;
+          });
+        });
     });
+   
+    new Timer(const Duration(seconds: 10), _setRenew);
+  }
+  
+  Future<int> _getCnt(Database db) async {
+    int cc = Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM Test"));
+    return cc;
   }
   
   Future<Database> _initDB() async {
@@ -126,9 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // non-existent appearance.
     // if (!mounted) return;
     
-    setState(() {
-      _renew = cc;
-    });
+
     
     // Insert some records
     // Insert some records in a transaction
@@ -136,6 +145,15 @@ class _MyHomePageState extends State<MyHomePage> {
       int id1 = await _database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
       print("inserted2: $id1"); 
     });
+    
+    int cnt = await _getCnt(_database);
+    
+    setState(() {
+      _renew = cc;
+      _cnt = cnt;
+    });
+    
+    new Timer(const Duration(seconds: 10), _setRenew);
   }
   @override
   Widget build(BuildContext context) {
@@ -174,7 +192,7 @@ class _MyHomePageState extends State<MyHomePage> {
               'Текст в базе',
             ),
             new Text(
-              '${_blabla} - ${_renew}',
+              '${_cnt} - ${_renew}',
               style: Theme.of(context).textTheme.display1,
             ),
             new TextField(
