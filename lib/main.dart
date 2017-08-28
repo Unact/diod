@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(new MyApp());
@@ -33,6 +35,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _blabla = "";
+  String _renew = "";
   
   final TextEditingController _controller = new TextEditingController();
   Database _database;
@@ -105,6 +108,34 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
   
+  Future<Null> _setRenew() async {
+  
+    Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
+      { "q[ddatee_gteq]": "2017-08-28", "q[ddateb_lteq]": "2017-08-30" }
+    );
+    var httpClient = createHttpClient();
+    var response = await httpClient.get(uri,
+      headers: {"api-code": ""}
+    );
+    List<Map> data = JSON.decode(response.body);
+    String cc = data[0]["comments"];
+
+    // If the widget was removed from the tree while the message was in flight,
+    // we want to discard the reply rather than calling setState to update our
+    // non-existent appearance.
+    // if (!mounted) return;
+    
+    setState(() {
+      _renew = cc;
+    });
+    
+    // Insert some records
+    // Insert some records in a transaction
+    await _database.inTransaction(() async {
+      int id1 = await _database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
+      print("inserted2: $id1"); 
+    });
+  }
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -142,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
               'Текст в базе',
             ),
             new Text(
-              '${_blabla}',
+              '${_blabla} - ${_renew}',
               style: Theme.of(context).textTheme.display1,
             ),
             new TextField(
@@ -164,6 +195,13 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               child: new Text('Сохранить'),
             ),
+            new RaisedButton(
+              onPressed: () {
+                _setRenew();
+              },
+              child: new Text('Renew Get'),
+            ),
+            
           ],
         ),
       ),
