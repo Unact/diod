@@ -34,7 +34,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _blabla = "";
+  String _blabla = "her";
   String _renew = "";
   
   final TextEditingController _controller = new TextEditingController();
@@ -65,8 +65,9 @@ class _MyHomePageState extends State<MyHomePage> {
     Database database = await openDatabase(path, version: 2,
       onCreate: (Database db, int version) async {
       // When creating the db, create the table
-      await db.execute(
-        "CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER, num REAL, her TEXT)");
+      await db.execute("""CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER,
+                                             num REAL,
+                                             her TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         assert(oldVersion == 1);
@@ -115,7 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     var httpClient = createHttpClient();
     var response = await httpClient.get(uri,
-      headers: {"api-code": ""}
+      headers: {"api-code": _blabla}
     );
     List<Map> data = JSON.decode(response.body);
     String cc = data[0]["comments"];
