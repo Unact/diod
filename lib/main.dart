@@ -6,8 +6,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart';
 
+const String testRoute = "/a";
+
+
 void main() {
-  runApp(new MyApp());
+  // runApp(new MyApp());
+  
+  runApp(new MaterialApp(
+    home: new MyApp(), // becomes the route named '/'
+    routes: <String, WidgetBuilder> {
+      testRoute: (BuildContext context) => new MyApp(title: 'page A'),
+    },
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -153,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _cnt = cnt;
     });
     
-    new Timer(const Duration(seconds: 10), _setRenew);
+    // new Timer(const Duration(seconds: 10), _setRenew);
   }
   @override
   Widget build(BuildContext context) {
@@ -220,7 +230,12 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               child: new Text('Renew Get'),
             ),
-            
+            new RaisedButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(testRoute);
+              },
+              child: new Text('Other screen'),
+            ),
           ],
         ),
       ),
