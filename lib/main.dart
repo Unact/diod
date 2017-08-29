@@ -6,31 +6,33 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/services.dart';
 
-const String testRoute = "/a";
+const String configRoute = "/config";
 
 
 void main() {
-  // runApp(new MyApp());
-  
-  runApp(new MaterialApp(
-    home: new MyApp(), // becomes the route named '/'
-    routes: <String, WidgetBuilder> {
-      testRoute: (BuildContext context) => new MyApp(title: 'page A'),
-    },
-  ));
+  runApp(new MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   // This widget is the root of your application.
+  
+  @override
+  _MyAppState createState() => new _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  var routes = <String, WidgetBuilder>{
+    configRoute: (BuildContext context) => new ConfigScreen(),
+  };
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
-      title: 'Заголовок приложения',
-      theme: new ThemeData(
-        primarySwatch: Colors.green,
-      ),
-      home: new MyHomePage(title: 'Это начальная страница приложения'),
-    );
+        title: 'Приложение графика',
+        theme: new ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: new MyHomePage(title: 'График разработчиков'),
+        routes: routes);
   }
 }
 
@@ -108,7 +110,6 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<String> _readStr() async {
     try {
       File file = await _getLocalFile();
-      // read the variable as a string from the file.
       String contents = await file.readAsString();
       return contents;
     } on FileSystemException {
@@ -120,10 +121,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _blabla = _controller.text;
     });
-    // write the variable as a string to the file
     await (await _getLocalFile()).writeAsString('$_blabla');
     
-    // Insert some records in a transaction
     await _database.inTransaction(() async {
       int id1 = await _database.rawInsert('INSERT INTO Test(name, value, num) VALUES("$_blabla", 1234, 456.789)');
       print("inserted1: $id1"); 
@@ -141,16 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     List<Map> data = JSON.decode(response.body);
     String cc = data[0]["comments"];
-
-    // If the widget was removed from the tree while the message was in flight,
-    // we want to discard the reply rather than calling setState to update our
-    // non-existent appearance.
-    // if (!mounted) return;
     
-
-    
-    // Insert some records
-    // Insert some records in a transaction
     await _database.inTransaction(() async {
       int id1 = await _database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
       print("inserted2: $id1"); 
@@ -167,35 +157,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return new Scaffold(
       appBar: new AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: new Text(widget.title),
       ),
       body: new Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: new Column(
-          // Column is also layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug paint" (press "p" in the console where you ran
-          // "flutter run", or select "Toggle Debug Paint" from the Flutter tool
-          // window in IntelliJ) to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             new Text(
@@ -228,18 +195,35 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 _setRenew();
               },
-              child: new Text('Renew Get'),
+              child: new Text('Обновить'),
             ),
             new RaisedButton(
               onPressed: () {
-                Navigator.of(context).pushNamed(testRoute);
+                Navigator.of(context).pushNamed(configRoute);
               },
-              child: new Text('Other screen'),
+              child: new Text('Настройки'),
             ),
           ],
         ),
       ),
      
+    );
+  }
+}
+
+class ConfigScreen extends StatefulWidget {                     
+ @override                                                         
+ State createState() => new ConfigScreenState();                    
+} 
+
+
+class ConfigScreenState extends State<ConfigScreen> {                  
+ @override                                                         
+ Widget build(BuildContext context) {
+   return new Scaffold(
+      appBar: new AppBar(
+        title: new Text("Настройки подключения")
+       ),
     );
   }
 }
