@@ -8,6 +8,24 @@ import 'package:flutter/services.dart';
 
 const String configRoute = "/config";
 
+Future<File> _getLocalFile() async {
+  String dir = (await getApplicationDocumentsDirectory()).path;
+  return new File('$dir/blabla.txt');
+}
+  
+Future<String> _readStr() async {
+  try {
+    File file = await _getLocalFile();
+    String contents = await file.readAsString();
+    return contents;
+  } on FileSystemException {
+    return "Error";
+  }
+}
+
+Future<Null> _setStr(String str) async {
+     await (await _getLocalFile()).writeAsString('$str');
+}
 
 void main() {
   runApp(new MyApp());
@@ -46,22 +64,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _blabla = "her";
   String _renew = "";
   int    _cnt = 0;
   
-  final TextEditingController _controller = new TextEditingController();
   Database _database;
   
   @override
   void initState() {
     super.initState();
-    _readStr().then((String value) {
-      setState(() {
-        _blabla = value;
-        _controller.text = value;
-      });
-    });
     _initDB().then((Database db) {
         _getCnt(db).then((int cc) {
           setState(() {
@@ -100,43 +110,15 @@ class _MyHomePageState extends State<MyHomePage> {
     );
     return database;
   }
-  
-  Future<File> _getLocalFile() async {
-    // get the path to the document directory.
-    String dir = (await getApplicationDocumentsDirectory()).path;
-    return new File('$dir/blabla.txt');
-  }
-
-  Future<String> _readStr() async {
-    try {
-      File file = await _getLocalFile();
-      String contents = await file.readAsString();
-      return contents;
-    } on FileSystemException {
-      return "Error";
-    }
-  }
-  
-  Future<Null> _setStr() async {
-    setState(() {
-      _blabla = _controller.text;
-    });
-    await (await _getLocalFile()).writeAsString('$_blabla');
-    
-    await _database.inTransaction(() async {
-      int id1 = await _database.rawInsert('INSERT INTO Test(name, value, num) VALUES("$_blabla", 1234, 456.789)');
-      print("inserted1: $id1"); 
-    });
-  }
-  
+      
   Future<Null> _setRenew() async {
-  
+    String blabla = await _readStr();
     Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
       { "q[ddatee_gteq]": "2017-08-28", "q[ddateb_lteq]": "2017-08-30" }
     );
     var httpClient = createHttpClient();
     var response = await httpClient.get(uri,
-      headers: {"api-code": _blabla}
+      headers: {"api-code": blabla}
     );
     List<Map> data = JSON.decode(response.body);
     String cc = data[0]["comments"];
@@ -155,6 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
     
     // new Timer(const Duration(seconds: 10), _setRenew);
   }
+  
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -171,25 +154,6 @@ class _MyHomePageState extends State<MyHomePage> {
             new Text(
               '${_cnt} - ${_renew}',
               style: Theme.of(context).textTheme.display1,
-            ),
-            new TextField(
-              controller: _controller,
-              decoration: new InputDecoration(
-                hintText: 'Type something',
-              ),
-            ),
-            new RaisedButton(
-              onPressed: () {
-                _setStr();
-                showDialog(
-                  context: context,
-                  child: new AlertDialog(
-                    title: new Text('Сохранен текст:'),
-                    content: new Text(_controller.text),
-                  ),
-                );
-              },
-              child: new Text('Сохранить'),
             ),
             new RaisedButton(
               onPressed: () {
@@ -212,18 +176,45 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class ConfigScreen extends StatefulWidget {                     
- @override                                                         
- State createState() => new ConfigScreenState();                    
+  @override                                                         
+  State createState() => new ConfigScreenState();                    
 } 
-
-
-class ConfigScreenState extends State<ConfigScreen> {                  
- @override                                                         
- Widget build(BuildContext context) {
-   return new Scaffold(
+  
+class ConfigScreenState extends State<ConfigScreen> {
+  
+  final TextEditingController _controller = new TextEditingController();
+  
+  @override
+  void initState() {
+    super.initState();
+    _readStr().then((String value) {
+        _controller.text = value;
+    });
+    
+    _controller.addListener(() {
+      _setStr(_controller.text);
+    });
+  }
+  
+  @override                                                         
+  Widget build(BuildContext context) {
+    return new Scaffold(
       appBar: new AppBar(
         title: new Text("Настройки подключения")
-       ),
+      ),
+      body: new Center(
+        child: new Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            new TextField(
+              controller: _controller,
+              decoration: new InputDecoration(
+                hintText: 'Введи код',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
