@@ -39,10 +39,22 @@ class MyConfig {
     // open the database
     database = await openDatabase(path, version: 2,
       onCreate: (Database db, int version) async {
-      // When creating the db, create the table
-      await db.execute("""CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER,
-                                             num REAL,
-                                             her TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
+        await db.execute("""CREATE TABLE schedule_requests (
+          id INTEGER PRIMARY KEY,
+          ddate DATETIME,
+          ddateb DATETIME,
+          ddateb_future DATETIME,
+          ddatee_future DATETIME,
+          person INTEGER,
+          comments TEXT,
+          ts DATETIME DEFAULT CURRENT_TIMESTAMP)"""
+        );
+        // https://renew.unact.ru/universal_api/Person.json" -X GET -d "q[fio_combo]=true&limitless=true
+        
+        await db.execute("""CREATE TABLE person (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         assert(oldVersion == 1);
