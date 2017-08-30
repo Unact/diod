@@ -8,23 +8,8 @@ import 'package:flutter/services.dart';
 
 const String configRoute = "/config";
 
-Future<File> _getLocalFile() async {
-  String dir = (await getApplicationDocumentsDirectory()).path;
-  return new File('$dir/blabla.txt');
-}
-  
-Future<String> _readStr() async {
-  try {
-    File file = await _getLocalFile();
-    String contents = await file.readAsString();
-    return contents;
-  } on FileSystemException {
-    return "Error";
-  }
-}
-
-Future<Null> _setStr(String str) async {
-     await (await _getLocalFile()).writeAsString('$str');
+class MyConfig {
+  String apiCode = "";
 }
 
 void main() {
@@ -33,15 +18,51 @@ void main() {
 
 class MyApp extends StatefulWidget {
   // This widget is the root of your application.
-  
   @override
   _MyAppState createState() => new _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  var routes = <String, WidgetBuilder>{
-    configRoute: (BuildContext context) => new ConfigScreen(),
-  };
+  final MyConfig cfg = new MyConfig();
+  
+  Future<File> _getLocalFile() async {
+    String dir = (await getApplicationDocumentsDirectory()).path;
+    return new File('$dir/blabla.txt');
+  }
+    
+  Future<String> _readStr() async {
+    try {
+      File file = await _getLocalFile();
+      String contents = await file.readAsString();
+      return contents;
+    } on FileSystemException {
+      return "Error";
+    }
+  }
+  
+  Future<Null> _setStr(String str) async {
+       await (await _getLocalFile()).writeAsString('$str');
+  }
+
+  void _handleCodeChanged(String apiCode) {
+    _setStr(apiCode);
+    setState(() {
+      cfg.apiCode = apiCode;
+    });
+  }
+  
+  var routes;
+  @override
+  void initState() {
+    super.initState();
+    _readStr().then((String val){
+      cfg.apiCode = val;
+    });
+    routes = <String, WidgetBuilder>{
+        configRoute: (BuildContext context) => new ConfigScreen(cfg: cfg, onCodeChanged: _handleCodeChanged),
+    };
+  }
+  
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
@@ -49,16 +70,17 @@ class _MyAppState extends State<MyApp> {
         theme: new ThemeData(
           primarySwatch: Colors.blue,
         ),
-        home: new MyHomePage(title: 'График разработчиков'),
+        home: new MyHomePage(title: 'График разработчиков', cfg: cfg),
         routes: routes);
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key key, this.title, this.cfg}) : super(key: key);
 
   final String title;
-
+  final MyConfig cfg;
+  
   @override
   _MyHomePageState createState() => new _MyHomePageState();
 }
@@ -80,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         });
     });
-   
+    print("api code = ${widget.cfg.apiCode}");
     new Timer(const Duration(seconds: 10), _setRenew);
   }
   
@@ -112,13 +134,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
       
   Future<Null> _setRenew() async {
-    String blabla = await _readStr();
     Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
       { "q[ddatee_gteq]": "2017-08-28", "q[ddateb_lteq]": "2017-08-30" }
     );
     var httpClient = createHttpClient();
     var response = await httpClient.get(uri,
-      headers: {"api-code": blabla}
+      headers: {"api-code": widget.cfg.apiCode}
     );
     List<Map> data = JSON.decode(response.body);
     String cc = data[0]["comments"];
@@ -175,24 +196,27 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class ConfigScreen extends StatefulWidget {                     
+typedef void ApiCodeChangedCallback(String apiCode);
+  
+class ConfigScreen extends StatefulWidget {
+  MyConfig cfg;
+  final ApiCodeChangedCallback onCodeChanged;
+  ConfigScreen({Key key, this.cfg, this.onCodeChanged}) : super(key: key);
+
   @override                                                         
   State createState() => new ConfigScreenState();                    
-} 
-  
+}
+
 class ConfigScreenState extends State<ConfigScreen> {
   
   final TextEditingController _controller = new TextEditingController();
-  
+
   @override
   void initState() {
     super.initState();
-    _readStr().then((String value) {
-        _controller.text = value;
-    });
-    
+    _controller.text = widget.cfg.apiCode;
     _controller.addListener(() {
-      _setStr(_controller.text);
+      widget.onCodeChanged(_controller.text);
     });
   }
   
