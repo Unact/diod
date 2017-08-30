@@ -10,6 +10,7 @@ const String configRoute = "/config";
 
 class MyConfig {
   String apiCode = "";
+  Database database;
 }
 
 void main() {
@@ -44,6 +45,28 @@ class _MyAppState extends State<MyApp> {
        await (await _getLocalFile()).writeAsString('$str');
   }
 
+  Future<Database> _initDB() async {
+    // Get a location using path_provider
+    String dir = (await getApplicationDocumentsDirectory()).path;
+    String path = "$dir/mydb.db";
+
+    // open the database
+    Database database = await openDatabase(path, version: 2,
+      onCreate: (Database db, int version) async {
+      // When creating the db, create the table
+      await db.execute("""CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER,
+                                             num REAL,
+                                             her TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
+      },
+      onUpgrade: (Database db, int oldVersion, int newVersion) async {
+        assert(oldVersion == 1);
+        assert(newVersion == 2);
+        await db.execute("ALTER TABLE Test ADD her TEXT");
+      }
+    );
+    return database;
+  }
+
   void _handleCfgChanged() {
     _setStr(cfg.apiCode);
   }
@@ -54,6 +77,9 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _readStr().then((String val){
       cfg.apiCode = val;
+    });
+    _initDB().then((Database db) {
+      cfg.database = db;  
     });
     routes = <String, WidgetBuilder>{
         configRoute: (BuildContext context) => new ConfigScreen(cfg: cfg, onCfgChanged: _handleCfgChanged),
@@ -85,51 +111,25 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _renew = "";
   int    _cnt = 0;
-  
-  Database _database;
-  
+    
   @override
   void initState() {
     super.initState();
-    _initDB().then((Database db) {
-        _getCnt(db).then((int cc) {
-          setState(() {
-            _database = db;
-            _cnt = cc;
-          });
+    if (widget.cfg.database != null) {
+      _getCnt(widget.cfg.database).then((int cc) {
+        setState(() {
+          _cnt = cc;
         });
-    });
-    print("api code = ${widget.cfg.apiCode}");
-    new Timer(const Duration(seconds: 10), _setRenew);
+      });
+    }
+    new Timer(const Duration(seconds: 1), _setRenew);
   }
   
   Future<int> _getCnt(Database db) async {
     int cc = Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM Test"));
     return cc;
   }
-  
-  Future<Database> _initDB() async {
-    // Get a location using path_provider
-    String dir = (await getApplicationDocumentsDirectory()).path;
-    String path = "$dir/demo.db";
-
-    // open the database
-    Database database = await openDatabase(path, version: 2,
-      onCreate: (Database db, int version) async {
-      // When creating the db, create the table
-      await db.execute("""CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER,
-                                             num REAL,
-                                             her TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
-      },
-      onUpgrade: (Database db, int oldVersion, int newVersion) async {
-        assert(oldVersion == 1);
-        assert(newVersion == 2);
-        await db.execute("ALTER TABLE Test ADD her TEXT");
-      }
-    );
-    return database;
-  }
-      
+        
   Future<Null> _setRenew() async {
     Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
       { "q[ddatee_gteq]": "2017-08-28", "q[ddateb_lteq]": "2017-08-30" }
@@ -141,12 +141,12 @@ class _MyHomePageState extends State<MyHomePage> {
     List<Map> data = JSON.decode(response.body);
     String cc = data[0]["comments"];
     
-    await _database.inTransaction(() async {
-      int id1 = await _database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
+    await widget.cfg.database.inTransaction(() async {
+      int id1 = await widget.cfg.database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
       print("inserted2: $id1"); 
     });
     
-    int cnt = await _getCnt(_database);
+    int cnt = await _getCnt(widget.cfg.database);
     
     setState(() {
       _renew = cc;
