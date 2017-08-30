@@ -202,10 +202,12 @@ class ConfigScreenState extends State<ConfigScreen> {
       appBar: new AppBar(
         title: new Text("Настройки подключения")
       ),
-      body: new Center(
+      body: new Container(
+        padding: const EdgeInsets.all(32.0),
         child: new Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            new Text('API code'),
             new TextField(
               controller: _controller,
               decoration: new InputDecoration(
