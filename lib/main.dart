@@ -89,7 +89,8 @@ class _MyAppState extends State<MyApp> {
           primarySwatch: Colors.blue,
         ),
         home: new MyHomePage(title: 'График разработчиков', cfg: cfg),
-        routes: routes);
+        routes: routes,
+    );
   }
 }
 
@@ -118,10 +119,6 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
   
-  Future<int> _getCnt(Database db) async {
-    int cc = Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM Test"));
-    return cc;
-  }
         
   Future<Null> setRenew() async {
     Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
@@ -139,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
       print("inserted2: $id1"); 
     });
     
-    int cnt = await _getCnt(widget.cfg.database);
+    int cnt = await (Sqflite.firstIntValue(await widget.cfg.database.rawQuery("SELECT COUNT(*) FROM Test")));
     
     setState(() {
       _renew = cc;
@@ -155,28 +152,41 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: new AppBar(
         title: new Text(widget.title),
       ),
-      body: new Center(
+      body: new Container(
+        padding: const EdgeInsets.all(32.0),
         child: new Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            new Text(
-              'Текст в базе',
+            new Padding(
+              padding: new EdgeInsets.only(bottom: 4.0),
+              child: new Text(
+                'Текст в базе',
+              ),
             ),
-            new Text(
-              '${_cnt} - ${_renew}',
-              style: Theme.of(context).textTheme.display1,
+            new Padding(
+              padding: new EdgeInsets.only(bottom: 4.0),
+              child: new Text(
+                '${_cnt} - ${_renew}',
+              ),
             ),
-            new RaisedButton(
-              onPressed: () {
-                setRenew();
-              },
-              child: new Text('Обновить'),
+            new Padding(
+              padding: new EdgeInsets.only(bottom: 4.0),
+              child:
+                new RaisedButton(
+                  onPressed: () {
+                    setRenew();
+                  },
+                  child: new Text('Обновить'),
+                ),
             ),
-            new RaisedButton(
-              onPressed: () {
-                Navigator.of(context).pushNamed(configRoute);
-              },
-              child: new Text('Настройки'),
+            new Padding(
+              padding: new EdgeInsets.only(bottom: 4.0),
+              child: new RaisedButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(configRoute);
+                },
+                child: new Text('Настройки'),
+              ),
             ),
           ],
         ),
@@ -220,7 +230,6 @@ class ConfigScreenState extends State<ConfigScreen> {
       body: new Container(
         padding: const EdgeInsets.all(32.0),
         child: new Column(
-          // mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             new Text('API code'),
             new TextField(
