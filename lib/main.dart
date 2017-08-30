@@ -27,7 +27,7 @@ class _MyAppState extends State<MyApp> {
   
   Future<File> _getLocalFile() async {
     String dir = (await getApplicationDocumentsDirectory()).path;
-    return new File('$dir/blabla.txt');
+    return new File('$dir/api_code.txt');
   }
     
   Future<String> _readStr() async {
@@ -44,11 +44,8 @@ class _MyAppState extends State<MyApp> {
        await (await _getLocalFile()).writeAsString('$str');
   }
 
-  void _handleCodeChanged(String apiCode) {
-    _setStr(apiCode);
-    setState(() {
-      cfg.apiCode = apiCode;
-    });
+  void _handleCfgChanged() {
+    _setStr(cfg.apiCode);
   }
   
   var routes;
@@ -59,7 +56,7 @@ class _MyAppState extends State<MyApp> {
       cfg.apiCode = val;
     });
     routes = <String, WidgetBuilder>{
-        configRoute: (BuildContext context) => new ConfigScreen(cfg: cfg, onCodeChanged: _handleCodeChanged),
+        configRoute: (BuildContext context) => new ConfigScreen(cfg: cfg, onCfgChanged: _handleCfgChanged),
     };
   }
   
@@ -196,12 +193,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-typedef void ApiCodeChangedCallback(String apiCode);
+typedef void CfgChangedCallback();
   
 class ConfigScreen extends StatefulWidget {
   MyConfig cfg;
-  final ApiCodeChangedCallback onCodeChanged;
-  ConfigScreen({Key key, this.cfg, this.onCodeChanged}) : super(key: key);
+  final CfgChangedCallback onCfgChanged;
+  ConfigScreen({Key key, this.cfg, this.onCfgChanged}) : super(key: key);
 
   @override                                                         
   State createState() => new ConfigScreenState();                    
@@ -216,7 +213,8 @@ class ConfigScreenState extends State<ConfigScreen> {
     super.initState();
     _controller.text = widget.cfg.apiCode;
     _controller.addListener(() {
-      widget.onCodeChanged(_controller.text);
+      widget.cfg.apiCode = _controller.text;
+      widget.onCfgChanged();
     });
   }
   
