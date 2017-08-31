@@ -37,29 +37,28 @@ class MyConfig {
     String path = "$dir/mydb.db";
 
     // open the database
-    database = await openDatabase(path, version: 2,
+    database = await openDatabase(path, version: 1,
       onCreate: (Database db, int version) async {
-        await db.execute("""CREATE TABLE schedule_requests (
-          id INTEGER PRIMARY KEY,
-          ddate DATETIME,
-          ddateb DATETIME,
-          ddateb_future DATETIME,
-          ddatee_future DATETIME,
-          person INTEGER,
-          comments TEXT,
-          ts DATETIME DEFAULT CURRENT_TIMESTAMP)"""
-        );
-        // https://renew.unact.ru/universal_api/Person.json" -X GET -d "q[fio_combo]=true&limitless=true
-        
+        await db.execute("""
+          CREATE TABLE schedule_requests(
+            id INTEGER PRIMARY KEY,
+            ddateb DATETIME,
+            ddatee DATETIME,
+            ddateb_future DATETIME,
+            ddatee_future DATETIME,
+            person INTEGER,
+            comments TEXT,
+            ts DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+          """
+        );       
         await db.execute("""CREATE TABLE person (
         id INTEGER PRIMARY KEY,
         name TEXT,
         ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
-        assert(oldVersion == 1);
-        assert(newVersion == 2);
-        await db.execute("ALTER TABLE Test ADD her TEXT");
+        
       }
     );
     return database;
@@ -118,44 +117,102 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _renew = "Обновляю....";
-  int    _cnt = 0;
-    
+  DateTime _last_synch = new DateTime(1999,01,01);
+  String _error_text = "";
+  String _db_text = "";
+  final  host_name = "renew.unact.ru";
+  
   @override
   void initState() {
     super.initState();
     widget.cfg.readStr().then((String val){
       widget.cfg.apiCode = val;
       widget.cfg.initDB().then((Database db){
+        setFromDB();
         setRenew();
       });
     });
   }
   
-        
+  Future<Null> setFromDB() async {
+    String sql = """
+      select p.name, r.ddateb, r.ddatee, r.comments, r.ddateb_future, r.ddatee_future
+      from person p 
+           join schedule_requests r on r.person = p.id
+      order by r.ddateb, p.name
+    """;
+    List<Map> list = await widget.cfg.database.rawQuery(sql);
+    String s = "";
+    for (var row in list) {
+      s += "${row['name']}\t${row['ddateb'].substring(5,10)}\t${row['comments']}\n";
+    }
+    
+    list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
+    DateTime ts = DateTime.parse(list[0]['mts']);
+    
+    setState(() {
+      _db_text = s;
+      _last_synch = ts;
+    });
+  }
+  
   Future<Null> setRenew() async {
-    Uri uri = new Uri.https("renew.unact.ru", "/schedule_requests.json",
-      { "q[ddatee_gteq]": "2017-08-28", "q[ddateb_lteq]": "2017-08-30" }
+    setState(() {
+      _renew = 'Обновляется...';
+    });
+    DateTime d1 = (new DateTime.now()).add(new Duration(days: -1));
+    DateTime d2 = d1.add(new Duration(days: 3));;
+    try {
+    Uri uri = new Uri.https(host_name, "/schedule_requests.json",
+      { "q[ddatee_gteq]": '${d1.year}-${d1.month}-${d1.day}',
+        "q[ddateb_lteq]": '${d2.year}-${d2.month}-${d2.day}' }
     );
     var httpClient = createHttpClient();
     var response = await httpClient.get(uri,
       headers: {"api-code": widget.cfg.apiCode}
     );
     List<Map> data = JSON.decode(response.body);
-    String cc = data[0]["comments"];
     
     await widget.cfg.database.inTransaction(() async {
-      int id1 = await widget.cfg.database.rawInsert("INSERT INTO Test(her) VALUES('${response.body}')");
-      print("inserted2: $id1"); 
+      await widget.cfg.database.rawDelete("DELETE FROM schedule_requests");
+      for (var row in data) {
+        int id1 = await widget.cfg.database.rawInsert("""
+          INSERT INTO schedule_requests(id, ddateb, ddatee, ddateb_future, ddatee_future, person, comments)
+          VALUES(${row["id"]},'${row["ddateb"]}','${row["ddatee"]}',
+                              '${row["ddateb_future"]}','${row["ddateb_future"]}',
+                              ${row["person"]}, '${row["comments"]}')
+        """);
+        print("inserted schedule: $id1");
+        int person_id = await (Sqflite.firstIntValue(await widget.cfg.database.rawQuery("SELECT id FROM person where id = ${row['person']}")));
+        print("find person: $person_id");
+        if (person_id == null) {
+          Uri uri2 = new Uri.https(host_name, "/universal_api/Person.json",
+            { "q[person_id_eq]": "${row['person']}",
+              "q[fio_combo]": "true" }
+          );
+          var response = await httpClient.get(uri2,
+            headers: {"api-code": widget.cfg.apiCode}
+          );
+          List<Map> pdata = JSON.decode(response.body);
+          print("${pdata[0]['name']}");
+          int id2 = await widget.cfg.database.rawInsert("""
+            INSERT INTO person(id, name)
+            VALUES(${pdata[0]['id']}, '${pdata[0]['name']}')""");
+          print("inserted person: $id2");  
+        }
+      }
     });
-    
-    int cnt = await (Sqflite.firstIntValue(await widget.cfg.database.rawQuery("SELECT COUNT(*) FROM Test")));
-    
+    _error_text = "";
+    } catch(exception, stackTrace) {
+      _error_text = '\nСайт недоступен!!!!\n${exception}';
+      print(_error_text);
+    }
+    setFromDB();
     setState(() {
-      _renew = cc;
-      _cnt = cnt;
+      _renew = ' ';
     });
     
-    // new Timer(const Duration(seconds: 10), setRenew);
+    new Timer(const Duration(minutes: 30), setRenew);
   }
   
   @override
@@ -172,13 +229,13 @@ class _MyHomePageState extends State<MyHomePage> {
             new Padding(
               padding: new EdgeInsets.only(bottom: 4.0),
               child: new Text(
-                'Текст в базе',
+                '$_db_text',
               ),
             ),
             new Padding(
               padding: new EdgeInsets.only(bottom: 4.0),
               child: new Text(
-                '${_cnt} - ${_renew}',
+                'Последняя синхронизация: ${_last_synch.hour}:${_last_synch.minute}\n${_renew}${_error_text}',
               ),
             ),
             new Padding(
