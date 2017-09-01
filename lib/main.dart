@@ -119,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _renew = "Обновляю....";
   DateTime _last_synch = new DateTime(1999,01,01);
   String _error_text = "";
-  String _db_text = "";
+  List _list = [];
   final  host_name = "renew.unact.ru";
   
   @override
@@ -141,17 +141,20 @@ class _MyHomePageState extends State<MyHomePage> {
            join schedule_requests r on r.person = p.id
       order by r.ddateb, p.name
     """;
-    List<Map> list = await widget.cfg.database.rawQuery(sql);
-    String s = "";
-    for (var row in list) {
-      s += "${row['name']}\t${row['ddateb'].substring(5,10)}\t${row['comments']}\n";
+    List<Map> dlist = await widget.cfg.database.rawQuery(sql);
+    List slist = [];
+    for (var row in dlist) {
+      slist.add(row['name']);
+      slist.add(row['ddateb'].substring(8,16).replaceAll('T', ' '));
+      slist.add(row['ddatee'].substring(8,16).replaceAll('T', ' '));
+      slist.add(row['comments']);
     }
     
-    list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
-    DateTime ts = DateTime.parse(list[0]['mts']);
+    List<Map> list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
+    DateTime ts = DateTime.parse(list[0]['mts']).add(new Duration(hours: 3));
     
     setState(() {
-      _db_text = s;
+      _list = slist;
       _last_synch = ts;
     });
   }
@@ -161,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _renew = 'Обновляется...';
     });
     DateTime d1 = (new DateTime.now()).add(new Duration(days: -1));
-    DateTime d2 = d1.add(new Duration(days: 3));;
+    DateTime d2 = d1.add(new Duration(days: 4));;
     try {
     Uri uri = new Uri.https(host_name, "/schedule_requests.json",
       { "q[ddatee_gteq]": '${d1.year}-${d1.month}-${d1.day}',
@@ -204,7 +207,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     _error_text = "";
     } catch(exception, stackTrace) {
-      _error_text = '\nСайт недоступен!!!!\n${exception}';
+      _error_text = '\nСайт недоступен!\n${exception}';
       print(_error_text);
     }
     setFromDB();
@@ -222,14 +225,20 @@ class _MyHomePageState extends State<MyHomePage> {
         title: new Text(widget.title),
       ),
       body: new Container(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(16.0),
         child: new Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            new Padding(
-              padding: new EdgeInsets.only(bottom: 4.0),
-              child: new Text(
-                '$_db_text',
+            new Expanded(
+              child: new GridView.count(
+                  crossAxisCount: 4,
+                  mainAxisSpacing: 4.0,
+                  crossAxisSpacing: 4.0,
+                  padding: const EdgeInsets.all(4.0),
+                  childAspectRatio: 2.0,
+                  children: _list.map((var a) {
+                    return new Text('$a');
+                  }).toList(),
               ),
             ),
             new Padding(
