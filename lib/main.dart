@@ -11,12 +11,12 @@ const String configRoute = "/config";
 class MyConfig {
   String apiCode = "";
   Database database;
-  
+
   Future<File> _getLocalFile() async {
     String dir = (await getApplicationDocumentsDirectory()).path;
     return new File('$dir/api_code.txt');
   }
-    
+
   Future<String> readStr() async {
     try {
       File file = await _getLocalFile();
@@ -26,7 +26,7 @@ class MyConfig {
       return "Error";
     }
   }
-  
+
   Future<Null> store() async {
        await (await _getLocalFile()).writeAsString('$apiCode');
   }
@@ -50,70 +50,157 @@ class MyConfig {
             comments TEXT,
             ts DATETIME DEFAULT CURRENT_TIMESTAMP
           )
-          """
-        );       
-        await db.execute("""CREATE TABLE person (
+          """);
+
+      await db.execute("""
+        CREATE TABLE person (
         id INTEGER PRIMARY KEY,
         name TEXT,
         ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
+
+/* Таблицы почему-то не работают
+      await db.execute("""
+        CREATE TABLE shedule_requests_reasons (
+          id INTEGER PRIMARY KEY,
+          name TEXT
+        )""");
+
+        await db.execute("""
+          CREATE TABLE new_request (
+            ddateb DATETIME,
+            ddatee DATETIME,
+            ddateb_future DATETIME,
+            ddatee_future DATETIME,
+            person INTEGER,
+            comments TEXT,
+          )""");
+*/
+
+
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
-        
+
       }
     );
     return database;
   }
+} //myConfig
+
+
+
+
+class Choice {
+  const Choice({ this.title, this.icon });
+  final String title;
+  final IconData icon;
 }
+
+
+const List<Choice> choices = const <Choice>[
+  const Choice(title: 'Список', icon: Icons.directions_car),
+  const Choice(title: 'Заявка', icon: Icons.directions_walk),
+  const Choice(title: 'Настройки', icon: Icons.flight),
+];
+
+
+class ChoiceCard extends StatefulWidget {
+   final MyConfig cfg;
+   final Choice choice;
+   const ChoiceCard({ Key key, this.cfg, this.choice }) : super(key: key);
+
+  _ChoiceCardState createState() => new _ChoiceCardState();
+}
+
+
+
+class _ChoiceCardState extends State<ChoiceCard> {
+
+
+    void _handleCfgChanged() {
+      widget.cfg.store();
+    }
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle textStyle = Theme.of(context).textTheme.display1;
+
+    switch (widget.choice.title) {
+    case 'Список': return new MyHomePage(title: 'График разработчиков', cfg: widget.cfg);
+    case 'Заявка': return new MyEntry();
+    case 'Настройки': return new ConfigScreen(cfg: widget.cfg, onCfgChanged: _handleCfgChanged);
+
+
+  }
+  }
+} ////class ChoiceCard
+
+
+
 
 void main() {
   runApp(new MyApp());
 }
 
 class MyApp extends StatefulWidget {
-  // This widget is the root of your application.
+
   @override
   _MyAppState createState() => new _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  final MyConfig cfg = new MyConfig();
-  
 
-  void _handleCfgChanged() {
-    cfg.store();
-  }
-  
-  var routes;
-  @override
-  void initState() {
-    super.initState();    
-    routes = <String, WidgetBuilder>{
-        configRoute: (BuildContext context) => new ConfigScreen(cfg: cfg, onCfgChanged: _handleCfgChanged),
-    };
-  }
-  
+class _MyAppState extends State<MyApp> {
+
+  final MyConfig cfg = new MyConfig();
+
+
+
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
-        title: 'Приложение графика',
-        theme: new ThemeData(
-          primarySwatch: Colors.blue,
+      home: new DefaultTabController(
+        length: choices.length,
+        child: new Scaffold(
+          appBar: new AppBar(
+            bottom: new TabBar(
+              isScrollable: true,
+              tabs: choices.map((Choice choice) {
+                return new Tab(
+                  text: choice.title,
+                  icon: new Icon(choice.icon),
+                );
+              }).toList(),
+            ),
+          ),
+          body: new TabBarView(
+            children: choices.map((Choice choice) {
+              return new Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: new ChoiceCard(cfg: cfg, choice: choice),
+              );
+            }).toList(),
+          ),
         ),
-        home: new MyHomePage(title: 'График разработчиков', cfg: cfg),
-        routes: routes,
+      ),
     );
   }
+
+
 }
+
+
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title, this.cfg}) : super(key: key);
 
   final String title;
   final MyConfig cfg;
-  
+
   @override
   _MyHomePageState createState() => new _MyHomePageState();
 }
+
 
 class _MyHomePageState extends State<MyHomePage> {
   String _renew = "Обновляю....";
@@ -121,7 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _error_text = "";
   List _list = [];
   final  host_name = "renew.unact.ru";
-  
+
   @override
   void initState() {
     super.initState();
@@ -133,11 +220,11 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     });
   }
-  
+
   Future<Null> setFromDB() async {
     String sql = """
       select p.name, r.ddateb, r.ddatee, r.comments, r.ddateb_future, r.ddatee_future
-      from person p 
+      from person p
            join schedule_requests r on r.person = p.id
       order by r.ddateb, p.name
     """;
@@ -149,16 +236,16 @@ class _MyHomePageState extends State<MyHomePage> {
       slist.add(row['ddatee'].substring(8,16).replaceAll('T', ' '));
       slist.add(row['comments']);
     }
-    
+
     List<Map> list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
     DateTime ts = DateTime.parse(list[0]['mts']).add(new Duration(hours: 3));
-    
+
     setState(() {
       _list = slist;
       _last_synch = ts;
     });
   }
-  
+
   Future<Null> setRenew() async {
     setState(() {
       _renew = 'Обновляется...';
@@ -175,7 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
       headers: {"api-code": widget.cfg.apiCode}
     );
     List<Map> data = JSON.decode(response.body);
-    
+
     await widget.cfg.database.inTransaction(() async {
       await widget.cfg.database.rawDelete("DELETE FROM schedule_requests");
       for (var row in data) {
@@ -201,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage> {
           int id2 = await widget.cfg.database.rawInsert("""
             INSERT INTO person(id, name)
             VALUES(${pdata[0]['id']}, '${pdata[0]['name']}')""");
-          print("inserted person: $id2");  
+          print("inserted person: $id2");
         }
       }
     });
@@ -214,10 +301,10 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _renew = ' ';
     });
-    
+
     new Timer(const Duration(minutes: 30), setRenew);
-  }
-  
+  } //end of Future SetRenew()
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -257,37 +344,32 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: new Text('Обновить'),
                 ),
             ),
-            new Padding(
-              padding: new EdgeInsets.only(bottom: 4.0),
-              child: new RaisedButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(configRoute);
-                },
-                child: new Text('Настройки'),
-              ),
-            ),
           ],
         ),
       ),
-     
+
     );
   }
-}
+} // end of _MyHomePageState
+
 
 typedef void CfgChangedCallback();
-  
+
+
 class ConfigScreen extends StatefulWidget {
-  MyConfig cfg;
+  final MyConfig cfg;
   final CfgChangedCallback onCfgChanged;
   ConfigScreen({Key key, this.cfg, this.onCfgChanged}) : super(key: key);
 
-  @override                                                         
-  State createState() => new ConfigScreenState();                    
+  //@override
+  State createState() => new ConfigScreenState();
+
 }
 
 class ConfigScreenState extends State<ConfigScreen> {
-  
-  final TextEditingController _controller = new TextEditingController();
+
+final TextEditingController _controller = new TextEditingController();
+
 
   @override
   void initState() {
@@ -296,10 +378,13 @@ class ConfigScreenState extends State<ConfigScreen> {
     _controller.addListener(() {
       widget.cfg.apiCode = _controller.text;
       widget.onCfgChanged();
+      setState(() {});
     });
   }
-  
-  @override                                                         
+
+
+
+  @override
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: new AppBar(
@@ -321,4 +406,226 @@ class ConfigScreenState extends State<ConfigScreen> {
       ),
     );
   }
+} //конец ConfigScreen
+
+
+
+
+class MyEntry extends StatefulWidget {
+  @override
+  State createState() => new MyEntryState();
 }
+
+class MyEntryState extends State<MyEntry> {
+
+
+DateTime _timemiss_from;
+DateTime _timemiss_to;
+DateTime _timecompense_from;
+DateTime _timecompense_to;
+int      _reason;
+String   _datemiss_from;
+String   _datemiss_to;
+String   _datecompense_from;
+String   _datecompense_to;
+String   _comment;
+
+DateTime _testdate;
+
+
+
+Widget build(BuildContext context) {
+
+
+
+String _twoDigits(int n) {
+  if (n >= 10) return "$n";
+  return "0$n";
+}
+
+List<DateTime> intervals = new List();
+DateTime d1 = new DateTime(2017,01,01);
+for (var i = 0; i < 24*4; i++) {
+  intervals.add(d1);
+  d1 = d1.add(new Duration(minutes:15));
+}
+
+
+//Генерим дропдаун с ризонами. Пока что хардкодом
+Widget dddw_reasons = new DropdownButton<int>(
+  items:
+  [
+    new DropdownMenuItem<int>(value: 0, child: new Text('Иное')),
+    new DropdownMenuItem<int>(value: 1, child: new Text('Работаю дома')),
+    new DropdownMenuItem<int>(value: 2, child: new Text('Отпуск')),
+    new DropdownMenuItem<int>(value: 4, child: new Text('Пришел пораньше')),
+    new DropdownMenuItem<int>(value: 5, child: new Text('Задержусь')),
+    new DropdownMenuItem<int>(value: 6, child: new Text('Отработано'))
+  ],
+  value: _reason,
+  onChanged: (int newValue) {
+    setState(() {
+      _reason = newValue;
+    });
+  }
+);
+
+
+Widget dddw_timemiss_from = new DropdownButton<DateTime>(
+  items: intervals.map((DateTime value) {
+    return new DropdownMenuItem<DateTime>(
+      value: value,
+      child: new Text('${_twoDigits(value.hour)}'+':'+'${_twoDigits(value.minute)}'),
+    );
+  }).toList(),
+  value: _timemiss_from,
+  onChanged: (DateTime newValue) {
+    setState(() {
+      _timemiss_from = newValue;
+    });
+  }
+);
+
+Widget dddw_timemiss_to = new DropdownButton<DateTime>(
+  items: intervals.map((DateTime value) {
+    return new DropdownMenuItem<DateTime>(
+      value: value,
+      child: new Text('${_twoDigits(value.hour)}'+':'+'${_twoDigits(value.minute)}'),
+    );
+  }).toList(),
+  value: _timemiss_to,
+  onChanged: (DateTime newValue) {
+    setState(() {
+      _timemiss_to = newValue;
+    });
+  }
+);
+
+Widget dddw_timecompense_from = new DropdownButton<DateTime>(
+  items: intervals.map((DateTime value) {
+    return new DropdownMenuItem<DateTime>(
+      value: value,
+      child: new Text('${_twoDigits(value.hour)}'+':'+'${_twoDigits(value.minute)}'),
+    );
+  }).toList(),
+  value: _timecompense_from,
+  onChanged: (DateTime newValue) {
+    setState(() {
+      _timecompense_from = newValue;
+    });
+  }
+);
+
+
+
+
+
+Widget dddw_timecompense_to = new DropdownButton<DateTime>(
+  items: intervals.map((DateTime value) {
+    return new DropdownMenuItem<DateTime>(
+      value: value,
+      child: new Text('${_twoDigits(value.hour)}'+':'+'${_twoDigits(value.minute)}'),
+    );
+  }).toList(),
+  value: _timecompense_to,
+  onChanged: (DateTime newValue) {
+    setState(() {
+      _timecompense_to = newValue;
+    });
+  }
+);
+
+
+
+return new Column(
+  children: <Widget>[
+    new Row(
+      children: <Widget>[
+       new Expanded(child: new Text('Буду отсутствовать: ')),
+     ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('С ')),
+        new Expanded (child: new TextField(onChanged:((String newValue){_datemiss_from = newValue;}) )),
+        dddw_timemiss_from
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('По ')),
+        new Expanded (child: new TextField(onChanged:((String newValue){_datemiss_to = newValue;}) )),
+        dddw_timemiss_to
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('Причина ')),
+        dddw_reasons
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('Комментарий ')),
+        new Expanded (child: new TextField(onChanged:((String newValue){_comment = newValue;}) ))
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+       new Expanded(child: new Text('Обязуюсь отработать: '))
+     ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('С ')),
+        new Expanded (child: new TextField(onChanged:((String newValue){_datecompense_from = newValue;}) )),
+        dddw_timecompense_from
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new Text('По ')),
+        new Expanded (child: new TextField(onChanged:((String newValue){_datecompense_to = newValue;}) )),
+        dddw_timecompense_to
+      ]
+    ),
+    new Row(
+      children: <Widget>[
+        new Expanded (child: new RaisedButton
+        ( child: new Text('ОК') ,
+          color: Colors.blue,
+
+          //Заносим заявку в локальную таблицу
+          onPressed: () {
+
+          }
+
+
+        )),
+
+        //Тестовая кнопулька
+        new Expanded (child: new RaisedButton
+        ( child: new Text('тестовая кнопка') ,
+          color: Colors.pink,
+
+          onPressed: () {
+            //Такой парсинг отлично работает
+            //_testdate = DateTime.parse('2017-09-18');
+            //print(_testdate);
+          }
+
+
+        )),
+
+      ]
+
+    )
+  ]
+
+);
+
+
+
+
+  } //widget_build
+} //MyEntry
