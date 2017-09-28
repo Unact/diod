@@ -64,6 +64,8 @@ class MyConfig {
           id INTEGER PRIMARY KEY,
           name TEXT
         )""");
+*/
+
 
         await db.execute("""
           CREATE TABLE new_request (
@@ -71,10 +73,11 @@ class MyConfig {
             ddatee DATETIME,
             ddateb_future DATETIME,
             ddatee_future DATETIME,
+            reason INTEGER,
             person INTEGER,
-            comments TEXT,
+            comments TEXT
           )""");
-*/
+
 
 
       },
@@ -128,7 +131,7 @@ class _ChoiceCardState extends State<ChoiceCard> {
 
     switch (widget.choice.title) {
     case 'Список': return new MyHomePage(title: 'График разработчиков', cfg: widget.cfg);
-    case 'Заявка': return new MyEntry();
+    case 'Заявка': return new MyEntry(cfg: widget.cfg);
     case 'Настройки': return new ConfigScreen(cfg: widget.cfg, onCfgChanged: _handleCfgChanged);
 
 
@@ -215,6 +218,7 @@ class _MyHomePageState extends State<MyHomePage> {
     widget.cfg.readStr().then((String val){
       widget.cfg.apiCode = val;
       widget.cfg.initDB().then((Database db){
+        print('AAAAAAAAAAA initDB COMPLETED=----------------------------');
         setFromDB();
         setRenew();
       });
@@ -412,6 +416,10 @@ final TextEditingController _controller = new TextEditingController();
 
 
 class MyEntry extends StatefulWidget {
+  final MyConfig cfg;
+  MyEntry({Key key, this.cfg}) : super(key: key);
+
+
   @override
   State createState() => new MyEntryState();
 }
@@ -431,6 +439,94 @@ String   _datecompense_to;
 String   _comment;
 
 DateTime _testdate;
+
+
+final TextEditingController _controller_datemiss_from = new TextEditingController();
+final TextEditingController _controller_datemiss_to = new TextEditingController();
+final TextEditingController _controller_datecompense_from = new TextEditingController();
+final TextEditingController _controller_datecompense_to = new TextEditingController();
+final TextEditingController _controller_comment = new TextEditingController();
+
+
+
+
+@override
+void initState() {
+  super.initState();
+  _datemiss_from = '2017.12.01';
+  _datemiss_to = '2017.12.02';
+  _controller_datemiss_from.text = _datemiss_from;
+  _controller_datemiss_to.text = _datemiss_to;
+}
+
+//Вставляем заявку в локальную таблицу
+Future<Null> insertEntry() async {
+
+    print('===================== GO AHEAD insertEntry()');
+    print(widget.cfg.apiCode);
+    _timemiss_to = new DateTime.now();
+
+  await widget.cfg.database.inTransaction(() async {
+
+    await widget.cfg.database.rawDelete("DELETE FROM new_request");
+
+    print('===========************ step 1');
+
+    int id1 = await widget.cfg.database.rawInsert("""
+      INSERT INTO new_request(ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments)
+      VALUES('${_timemiss_from}','${_timemiss_to}',
+                          '${_timecompense_from}','${_timecompense_to}',
+                          '${_reason}',2647, '${_comment}')
+    """);
+
+    print("ins sched: $id1");
+
+    //Отладка. Попробуем селектнуть count(*) из новой таблицы и распечатать
+    List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
+    print('даты = ');
+    print(list[0]['ddateb']);
+    print(list[0]['ddatee']);
+
+
+
+/* Пример как делать селект
+    List<Map> list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
+    DateTime ts = DateTime.parse(list[0]['mts']).add(new Duration(hours: 3));
+*/
+
+
+  });
+
+
+}
+
+//Посылаем пост в реальную базу.
+//название дебильное: сюнк-асюнк
+
+//Нужно обрабатывать респонс и при успехе удалять из new_request
+//НЕ ДЕЛАТЬ если записей в локальной таблице нет
+Future<Null> syncEntry() async {
+
+//Здесь нужно заселектить new_reuqest и заполнить из нее jsonData
+List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments from new_request");
+
+    //нехватает полей compense, пока потестю без них
+  Map jsonData = {  //перезаполнить под наши нужды
+    'ddateb':       list[0]['ddateb'],
+    'ddatee':       list[0]['ddatee'],
+    'comments':     list[0]['comments'],
+    'reason':       list[0]['reason'],
+    'person':       list[0]['person'],
+  };
+
+/*   Вставка данных работоспособная, оттестированная, но пока деактивирована
+Uri uri = new Uri.https('renew.unact.ru', '/schedule_requests');
+var httpClient = createHttpClient();
+var response = httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
+
+*/
+
+}
 
 
 
@@ -547,14 +643,14 @@ return new Column(
     new Row(
       children: <Widget>[
         new Expanded (child: new Text('С ')),
-        new Expanded (child: new TextField(onChanged:((String newValue){_datemiss_from = newValue;}) )),
+        new Expanded (child: new TextField(controller: _controller_datemiss_from )),
         dddw_timemiss_from
       ]
     ),
     new Row(
       children: <Widget>[
         new Expanded (child: new Text('По ')),
-        new Expanded (child: new TextField(onChanged:((String newValue){_datemiss_to = newValue;}) )),
+        new Expanded (child: new TextField(controller: _controller_datemiss_to )),
         dddw_timemiss_to
       ]
     ),
@@ -567,7 +663,7 @@ return new Column(
     new Row(
       children: <Widget>[
         new Expanded (child: new Text('Комментарий ')),
-        new Expanded (child: new TextField(onChanged:((String newValue){_comment = newValue;}) ))
+        new Expanded (child: new TextField(controller: _controller_comment ))
       ]
     ),
     new Row(
@@ -578,14 +674,14 @@ return new Column(
     new Row(
       children: <Widget>[
         new Expanded (child: new Text('С ')),
-        new Expanded (child: new TextField(onChanged:((String newValue){_datecompense_from = newValue;}) )),
+        new Expanded (child: new TextField(controller: _controller_datecompense_from )),
         dddw_timecompense_from
       ]
     ),
     new Row(
       children: <Widget>[
         new Expanded (child: new Text('По ')),
-        new Expanded (child: new TextField(onChanged:((String newValue){_datecompense_to = newValue;}) )),
+        new Expanded (child: new TextField(controller: _controller_datecompense_to  )),
         dddw_timecompense_to
       ]
     ),
@@ -603,15 +699,28 @@ return new Column(
 
         )),
 
-        //Тестовая кнопулька
         new Expanded (child: new RaisedButton
         ( child: new Text('тестовая кнопка') ,
           color: Colors.pink,
 
           onPressed: () {
+
+                    insertEntry();
             //Такой парсинг отлично работает
             //_testdate = DateTime.parse('2017-09-18');
             //print(_testdate);
+          }
+
+
+        )),
+
+        new Expanded (child: new RaisedButton
+        ( child: new Text('заслать в кота') ,
+          color: Colors.yellow,
+
+          onPressed: () {
+
+                    syncEntry();
           }
 
 
