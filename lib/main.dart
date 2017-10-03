@@ -10,6 +10,7 @@ const String configRoute = "/config";
 
 class MyConfig {
   String apiCode = "";
+  int personid;
   Database database;
 
   Future<File> _getLocalFile() async {
@@ -87,6 +88,30 @@ class MyConfig {
     );
     return database;
   }
+
+  Future<Null> findpersonid() async {
+
+       personid = null;
+
+       Uri uri = new Uri.https('renew.unact.ru', "/renew_users.json",
+         { "q[api_code]": '${apiCode}'});
+       var httpClient = createHttpClient();
+       var response = await httpClient.get(uri,
+         headers: {"api-code": apiCode}
+       );
+       List<Map> data = JSON.decode(response.body);
+
+       for (var row in data) {
+         if (row["api_code"].toString() == apiCode) {
+           personid = row["person_id"];
+         }
+       }
+
+  }
+
+
+
+
 } //myConfig
 
 
@@ -217,8 +242,8 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     widget.cfg.readStr().then((String val){
       widget.cfg.apiCode = val;
+      widget.cfg.findpersonid();
       widget.cfg.initDB().then((Database db){
-        print('AAAAAAAAAAA initDB COMPLETED=----------------------------');
         setFromDB();
         setRenew();
       });
@@ -459,6 +484,8 @@ void initState() {
   _controller_datemiss_to.text = _datemiss_to;
 }
 
+
+
 //Вставляем заявку в локальную таблицу
 Future<Null> insertEntry() async {
 
@@ -501,7 +528,6 @@ Future<Null> insertEntry() async {
 }
 
 //Посылаем пост в реальную базу.
-//название дебильное: сюнк-асюнк
 
 //Нужно обрабатывать респонс и при успехе удалять из new_request
 //НЕ ДЕЛАТЬ если записей в локальной таблице нет
@@ -725,6 +751,18 @@ return new Column(
 
 
         )),
+
+        new Expanded (child: new RaisedButton
+        ( child: new Text('определить person_id') ,
+          color: Colors.indigo,
+
+          onPressed: () {
+             print(widget.cfg.personid);
+        }
+
+
+        )),
+
 
       ]
 
