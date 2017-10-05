@@ -8,6 +8,9 @@ import 'package:flutter/services.dart';
 
 const String configRoute = "/config";
 
+
+typedef void CfgChangedCallback();
+
 class MyConfig {
   String apiCode = "";
   int personid;
@@ -119,8 +122,6 @@ class MyConfig {
 } //myConfig
 
 
-
-
 class Choice {
   const Choice({ this.title, this.icon });
   final String title;
@@ -135,10 +136,12 @@ const List<Choice> choices = const <Choice>[
 ];
 
 
+
 class ChoiceCard extends StatefulWidget {
    final MyConfig cfg;
    final Choice choice;
-   const ChoiceCard({ Key key, this.cfg, this.choice }) : super(key: key);
+   final Widget choicewidget;
+   const ChoiceCard({ Key key, this.cfg, this.choice, this.choicewidget}) : super(key: key);
 
 
   _ChoiceCardState createState() => new _ChoiceCardState();
@@ -148,26 +151,10 @@ class ChoiceCard extends StatefulWidget {
 
 class _ChoiceCardState extends State<ChoiceCard> {
 
-
-    void _handleCfgChanged() {
-      widget.cfg.store();
-    }
-
-
-
   @override
   Widget build(BuildContext context) {
     final TextStyle textStyle = Theme.of(context).textTheme.display1;
-
-    print("ВЫЗОВ БИЛД У ЧОИС-КАРД");
-
-    switch (widget.choice.title) {
-    case 'Список': return new MyHomePage(title: 'График разработчиков', cfg: widget.cfg);
-    case 'Заявка': return new MyEntry(cfg: widget.cfg);
-    case 'Настройки': return new ConfigScreen(cfg: widget.cfg, onCfgChanged: _handleCfgChanged);
-
-
-  }
+    return widget.choicewidget;
   }
 } ////class ChoiceCard
 
@@ -189,10 +176,17 @@ class _MyAppState extends State<MyApp> {
 
   final MyConfig cfg = new MyConfig();
 
-
+  void _handleCfgChanged() {
+    cfg.store();
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    final _MyHomePage = new MyHomePage(title: 'График разработчиков', cfg: cfg);
+    final _MyEntry = new MyEntry(cfg: cfg);
+    final _ConfigScreen = new ConfigScreen(cfg: cfg, onCfgChanged: _handleCfgChanged);
+
     return new MaterialApp(
       home: new DefaultTabController(
         length: choices.length,
@@ -209,12 +203,20 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
           body: new TabBarView(
-            children: choices.map((Choice choice) {
-              return new Padding(
+            children: [
+              new Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: new ChoiceCard(cfg: cfg, choice: choice),
-              );
-            }).toList(),
+                child: new ChoiceCard(cfg: cfg, choice: choices[0], choicewidget: _MyHomePage),
+              ),
+              new Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: new ChoiceCard(cfg: cfg, choice: choices[1], choicewidget: _MyEntry),
+              ),
+              new Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: new ChoiceCard(cfg: cfg, choice: choices[2], choicewidget: _ConfigScreen),
+              )
+            ]
           ),
         ),
       ),
@@ -223,8 +225,6 @@ class _MyAppState extends State<MyApp> {
 
 
 }
-
-
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title, this.cfg}) : super(key: key);
@@ -389,7 +389,7 @@ class _MyHomePageState extends State<MyHomePage> {
 } // end of _MyHomePageState
 
 
-typedef void CfgChangedCallback();
+
 
 
 class ConfigScreen extends StatefulWidget {
@@ -532,16 +532,9 @@ Future<Null> insertEntry() async {
 }
 
 
-
-
-//Нужно дописать проверку: если таблица пуста, ничего не слать
 Future<Null> saveToCat() async {
 
-//Здесь нужно заселектить new_reuqest и заполнить из нее jsonData
 List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments from new_request");
-
-
-//print(list.length);   <-- это правильный способ определения кол-ва записей
 
 if (list.length > 0) {
 
@@ -560,8 +553,6 @@ if (list.length > 0) {
   Uri uri = new Uri.https('renew.unact.ru', '/schedule_requests');
   var httpClient = createHttpClient();
   var response = httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
-  //print("response: ");
-  //print(response);
 
   //Удалить все из локальной таблицы
   await widget.cfg.database.rawDelete("DELETE FROM new_request");
