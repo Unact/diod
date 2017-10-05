@@ -89,6 +89,7 @@ class MyConfig {
     return database;
   }
 
+
   Future<Null> findpersonid() async {
 
        personid = null;
@@ -108,6 +109,9 @@ class MyConfig {
        }
 
   }
+
+
+
 
 
 
@@ -136,6 +140,7 @@ class ChoiceCard extends StatefulWidget {
    final Choice choice;
    const ChoiceCard({ Key key, this.cfg, this.choice }) : super(key: key);
 
+
   _ChoiceCardState createState() => new _ChoiceCardState();
 }
 
@@ -153,6 +158,8 @@ class _ChoiceCardState extends State<ChoiceCard> {
   @override
   Widget build(BuildContext context) {
     final TextStyle textStyle = Theme.of(context).textTheme.display1;
+
+    print("ВЫЗОВ БИЛД У ЧОИС-КАРД");
 
     switch (widget.choice.title) {
     case 'Список': return new MyHomePage(title: 'График разработчиков', cfg: widget.cfg);
@@ -489,24 +496,28 @@ void initState() {
 //Вставляем заявку в локальную таблицу
 Future<Null> insertEntry() async {
 
-    print('===================== GO AHEAD insertEntry()');
-    print(widget.cfg.apiCode);
-    _timemiss_to = new DateTime.now();
+  _timemiss_to = new DateTime.now();
 
   await widget.cfg.database.inTransaction(() async {
+  await widget.cfg.database.rawDelete("DELETE FROM new_request");
 
-    await widget.cfg.database.rawDelete("DELETE FROM new_request");
 
-    print('===========************ step 1');
+
+  //Отладка. Здесь я заполню руками все переменные чтобы проверить как работает процедура сейвТуКет
+  _timemiss_from = new DateTime(2018,01,01,9,00);
+  _timemiss_to = new DateTime(2018,01,01,18,00);
+  _timecompense_from = new DateTime(2018,03,01,10,30);
+  _timecompense_to = new DateTime(2018,03,01,19,30);
+  _reason = 1;
+  _comment = "test diod";
 
     int id1 = await widget.cfg.database.rawInsert("""
       INSERT INTO new_request(ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments)
       VALUES('${_timemiss_from}','${_timemiss_to}',
                           '${_timecompense_from}','${_timecompense_to}',
-                          '${_reason}',2647, '${_comment}')
+                          '${_reason}','${widget.cfg.personid}', '${_comment}')
     """);
 
-    print("ins sched: $id1");
 
     //Отладка. Попробуем селектнуть count(*) из новой таблицы и распечатать
     List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
@@ -515,43 +526,53 @@ Future<Null> insertEntry() async {
     print(list[0]['ddatee']);
 
 
-
-/* Пример как делать селект
-    List<Map> list = await widget.cfg.database.rawQuery("SELECT MAX(ts) mts FROM schedule_requests");
-    DateTime ts = DateTime.parse(list[0]['mts']).add(new Duration(hours: 3));
-*/
-
-
   });
 
 
 }
 
-//Посылаем пост в реальную базу.
 
-//Нужно обрабатывать респонс и при успехе удалять из new_request
-//НЕ ДЕЛАТЬ если записей в локальной таблице нет
-Future<Null> syncEntry() async {
+
+
+//Нужно дописать проверку: если таблица пуста, ничего не слать
+Future<Null> saveToCat() async {
 
 //Здесь нужно заселектить new_reuqest и заполнить из нее jsonData
 List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments from new_request");
 
-    //нехватает полей compense, пока потестю без них
-  Map jsonData = {  //перезаполнить под наши нужды
-    'ddateb':       list[0]['ddateb'],
-    'ddatee':       list[0]['ddatee'],
-    'comments':     list[0]['comments'],
-    'reason':       list[0]['reason'],
-    'person':       list[0]['person'],
+
+//print(list.length);   <-- это правильный способ определения кол-ва записей
+
+if (list.length > 0) {
+
+  print("ООО: вставляем в кота");
+
+  Map jsonData = {
+    'ddateb':         list[0]['ddateb'],
+    'ddatee':         list[0]['ddatee'],
+    'comments':       list[0]['comments'],
+    'reason':         list[0]['reason'],
+    'person':         list[0]['person'],
+    'ddateb_future':  list[0]['ddateb_future'],
+    'ddatee_future':  list[0]['ddatee_future']
   };
 
-/*   Вставка данных работоспособная, оттестированная, но пока деактивирована
-Uri uri = new Uri.https('renew.unact.ru', '/schedule_requests');
-var httpClient = createHttpClient();
-var response = httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
+  Uri uri = new Uri.https('renew.unact.ru', '/schedule_requests');
+  var httpClient = createHttpClient();
+  var response = httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
+  //print("response: ");
+  //print(response);
 
-*/
+  //Удалить все из локальной таблицы
+  await widget.cfg.database.rawDelete("DELETE FROM new_request");
+  List<Map> ltest = await widget.cfg.database.rawQuery("SELECT count(*) cnt FROM new_request");
 
+} else
+{
+  print("ААА: нечего вставлять");
+}
+
+new Timer(const Duration(seconds: 20), saveToCat);
 }
 
 
@@ -726,7 +747,7 @@ return new Column(
         )),
 
         new Expanded (child: new RaisedButton
-        ( child: new Text('тестовая кнопка') ,
+        ( child: new Text('insertEntry') ,
           color: Colors.pink,
 
           onPressed: () {
@@ -746,7 +767,8 @@ return new Column(
 
           onPressed: () {
 
-                    syncEntry();
+            saveToCat();
+
           }
 
 
