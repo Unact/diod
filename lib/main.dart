@@ -62,14 +62,6 @@ class MyConfig {
         name TEXT,
         ts DATETIME DEFAULT CURRENT_TIMESTAMP)""");
 
-/* Таблицы почему-то не работают
-      await db.execute("""
-        CREATE TABLE shedule_requests_reasons (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )""");
-*/
-
 
         await db.execute("""
           CREATE TABLE new_request (
@@ -114,11 +106,6 @@ class MyConfig {
   }
 
 
-
-
-
-
-
 } //myConfig
 
 
@@ -130,8 +117,8 @@ class Choice {
 
 
 const List<Choice> choices = const <Choice>[
-  const Choice(title: 'Список', icon: Icons.directions_car),
   const Choice(title: 'Заявка', icon: Icons.directions_walk),
+  const Choice(title: 'Список', icon: Icons.directions_car),
   const Choice(title: 'Настройки', icon: Icons.flight),
 ];
 
@@ -180,14 +167,50 @@ class _MyAppState extends State<MyApp> {
     cfg.store();
   }
 
+
+  @override
+  void initState() {
+
+    super.initState();
+    cfg.readStr().then((String val){
+      cfg.apiCode = val;
+      cfg.findpersonid();
+      cfg.initDB();
+    });
+
+
+
+  }
+
   @override
   Widget build(BuildContext context) {
 
     final _MyHomePage = new MyHomePage(title: 'График разработчиков', cfg: cfg);
     final _MyEntry = new MyEntry(cfg: cfg);
     final _ConfigScreen = new ConfigScreen(cfg: cfg, onCfgChanged: _handleCfgChanged);
+    final _tp_MyHomePage = new ChoiceCard(cfg: cfg, choice: choices[0], choicewidget: _MyHomePage);
+    final _tp_MyEntry = new ChoiceCard(cfg: cfg, choice: choices[1], choicewidget: _MyEntry);
+    final _tp_ConfigScreen = new ChoiceCard(cfg: cfg, choice: choices[2], choicewidget: _ConfigScreen);
 
-    return new MaterialApp(
+
+    final _tapBar = new TabBarView(
+      children: [
+        new Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _tp_MyEntry,
+        ),
+        new Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _tp_MyHomePage,
+        ),
+        new Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _tp_ConfigScreen,
+        )
+      ]
+    );
+
+    final _app = new MaterialApp(
       home: new DefaultTabController(
         length: choices.length,
         child: new Scaffold(
@@ -202,25 +225,12 @@ class _MyAppState extends State<MyApp> {
               }).toList(),
             ),
           ),
-          body: new TabBarView(
-            children: [
-              new Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: new ChoiceCard(cfg: cfg, choice: choices[0], choicewidget: _MyHomePage),
-              ),
-              new Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: new ChoiceCard(cfg: cfg, choice: choices[1], choicewidget: _MyEntry),
-              ),
-              new Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: new ChoiceCard(cfg: cfg, choice: choices[2], choicewidget: _ConfigScreen),
-              )
-            ]
-          ),
+          body: _tapBar,
         ),
       ),
     );
+
+    return _app;
   }
 
 
@@ -247,14 +257,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    widget.cfg.readStr().then((String val){
-      widget.cfg.apiCode = val;
-      widget.cfg.findpersonid();
-      widget.cfg.initDB().then((Database db){
-        setFromDB();
-        setRenew();
-      });
-    });
+    setFromDB();
+    setRenew();
   }
 
   Future<Null> setFromDB() async {
@@ -287,7 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _renew = 'Обновляется...';
     });
     DateTime d1 = (new DateTime.now()).add(new Duration(days: -1));
-    DateTime d2 = d1.add(new Duration(days: 4));;
+    DateTime d2 = d1.add(new Duration(days: 4));
     try {
     Uri uri = new Uri.https(host_name, "/schedule_requests.json",
       { "q[ddatee_gteq]": '${d1.year}-${d1.month}-${d1.day}',
@@ -451,7 +455,6 @@ class MyEntry extends StatefulWidget {
   final MyConfig cfg;
   MyEntry({Key key, this.cfg}) : super(key: key);
 
-
   @override
   State createState() => new MyEntryState();
 }
@@ -472,6 +475,11 @@ String   _comment;
 
 DateTime _testdate;
 
+bool _extendedmode;
+bool _syncingmode;
+
+List<Widget> chld;
+
 
 final TextEditingController _controller_datemiss_from = new TextEditingController();
 final TextEditingController _controller_datemiss_to = new TextEditingController();
@@ -480,50 +488,107 @@ final TextEditingController _controller_datecompense_to = new TextEditingControl
 final TextEditingController _controller_comment = new TextEditingController();
 
 
+void initForm() {
 
+  _datemiss_from = '2018-03-02';
+  _datemiss_to = '2018-03-02';
+  _reason = 4;
+
+  _datecompense_from = '2018-03-02';
+  _datecompense_to = '2018-03-02';
+
+  _timemiss_from = new DateTime(2018,03,02,10,30);
+  _timemiss_to = new DateTime(2018,03,02,19,30);
+  _timecompense_from = new DateTime(2018,03,02,9,15);
+  _timecompense_to = new DateTime(2018,03,02,18,15);
+
+
+}
 
 @override
 void initState() {
   super.initState();
-  _datemiss_from = '2017.12.01';
-  _datemiss_to = '2017.12.02';
+  initForm();
+  _extendedmode = true; //заглушка
+  _syncingmode = true;
+
   _controller_datemiss_from.text = _datemiss_from;
   _controller_datemiss_to.text = _datemiss_to;
-}
+
+
+  _controller_datemiss_from.addListener(() {
+    _datemiss_from = _controller_datemiss_from.text;
+  });
+  _controller_datemiss_to.addListener(() {
+    _datemiss_to = _controller_datemiss_to.text;
+  });
+
+  _controller_datecompense_from.addListener(() {
+    _datecompense_from = _controller_datecompense_from.text;
+  });
+  _controller_datecompense_to.addListener(() {
+    _datecompense_to = _controller_datecompense_to.text;
+  });
+
+  _controller_comment.addListener(() {
+    _comment = _controller_comment.text;
+  });
+
+saveToCat();
+} //end of InitState
 
 
 
-//Вставляем заявку в локальную таблицу
 Future<Null> insertEntry() async {
 
-  _timemiss_to = new DateTime.now();
+String insertstr;
+DateTime ddateb;
+DateTime ddatee;
+DateTime ddatebc;
+DateTime ddateec;
+DateTime d_from;
+DateTime d_to;
+DateTime dc_from;
+DateTime dc_to;
+
+
+  //Парсим текстовые поля в даты
+  ddateb = DateTime.parse(_datemiss_from);
+  ddatee = DateTime.parse(_datemiss_to);
+  d_from = new DateTime(ddateb.year, ddateb.month, ddateb.day, _timemiss_from.hour, _timemiss_from.minute);
+  d_to = new DateTime(ddatee.year, ddatee.month, ddatee.day, _timemiss_to.hour, _timemiss_to.minute);
+
+if (_extendedmode) {
+  ddatebc = DateTime.parse(_datecompense_from);
+  ddateec = DateTime.parse(_datecompense_to);
+  dc_from = new DateTime(ddatebc.year, ddatebc.month, ddatebc.day, _timecompense_from.hour, _timecompense_from.minute);
+  dc_to = new DateTime(ddateec.year, ddateec.month, ddateec.day, _timecompense_to.hour, _timecompense_to.minute);
+}
 
   await widget.cfg.database.inTransaction(() async {
   await widget.cfg.database.rawDelete("DELETE FROM new_request");
 
-
-
-  //Отладка. Здесь я заполню руками все переменные чтобы проверить как работает процедура сейвТуКет
-  _timemiss_from = new DateTime(2018,01,01,9,00);
-  _timemiss_to = new DateTime(2018,01,01,18,00);
-  _timecompense_from = new DateTime(2018,03,01,10,30);
-  _timecompense_to = new DateTime(2018,03,01,19,30);
-  _reason = 1;
-  _comment = "test diod";
-
-    int id1 = await widget.cfg.database.rawInsert("""
+if (_extendedmode) {
+  insertstr = """
       INSERT INTO new_request(ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments)
-      VALUES('${_timemiss_from}','${_timemiss_to}',
-                          '${_timecompense_from}','${_timecompense_to}',
+      VALUES('${d_from.toString()}','${d_to.toString()}',
+                          '${dc_from.toString()}','${dc_to.toString()}',
                           '${_reason}','${widget.cfg.personid}', '${_comment}')
-    """);
+    """;
+} else {
+  insertstr = """
+      INSERT INTO new_request(ddateb, ddatee, reason, person, comments)
+      VALUES('${d_from.toString()}','${d_to.toString()}',
+                          '${_reason}','${widget.cfg.personid}', '${_comment}')
+    """;
+}
+
+  int id1 = await widget.cfg.database.rawInsert(insertstr);
 
 
     //Отладка. Попробуем селектнуть count(*) из новой таблицы и распечатать
-    List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
-    print('даты = ');
-    print(list[0]['ddateb']);
-    print(list[0]['ddatee']);
+    //List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
+    //print(list[0]['ddateb']);
 
 
   });
@@ -534,11 +599,19 @@ Future<Null> insertEntry() async {
 
 Future<Null> saveToCat() async {
 
-List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments from new_request");
+List<Map> list;
+
+try {
+list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee, ddateb_future, ddatee_future, reason, person, comments from new_request");
+}
+catch(exception) {
+  new Timer(const Duration(seconds: 1), saveToCat);
+  return;
+}
 
 if (list.length > 0) {
 
-  print("ООО: вставляем в кота");
+try {
 
   Map jsonData = {
     'ddateb':         list[0]['ddateb'],
@@ -552,24 +625,33 @@ if (list.length > 0) {
 
   Uri uri = new Uri.https('renew.unact.ru', '/schedule_requests');
   var httpClient = createHttpClient();
-  var response = httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
+  var response = await httpClient.post(uri, headers: {"api-code": widget.cfg.apiCode, 'Accept': 'application/json', 'Content-Type': 'application/json'}, body: JSON.encode(jsonData));
 
-  //Удалить все из локальной таблицы
   await widget.cfg.database.rawDelete("DELETE FROM new_request");
   List<Map> ltest = await widget.cfg.database.rawQuery("SELECT count(*) cnt FROM new_request");
 
-} else
-{
-  print("ААА: нечего вставлять");
+  setState((){_syncingmode = false;});
+
+
+}
+catch(exception) {
+  //print("ЫЫЫ: ничего не вставилось");
+  new Timer(const Duration(seconds: 10), saveToCat);
 }
 
-new Timer(const Duration(seconds: 20), saveToCat);
+
+} else
+{
+  //print("ЫЫЫ: нечего вставлять");
+  setState((){_syncingmode = false;});
 }
+
+} //end of SaveToCat
+
 
 
 
 Widget build(BuildContext context) {
-
 
 
 String _twoDigits(int n) {
@@ -578,7 +660,7 @@ String _twoDigits(int n) {
 }
 
 List<DateTime> intervals = new List();
-DateTime d1 = new DateTime(2017,01,01);
+DateTime d1 = new DateTime(2018,03,02);
 for (var i = 0; i < 24*4; i++) {
   intervals.add(d1);
   d1 = d1.add(new Duration(minutes:15));
@@ -600,6 +682,9 @@ Widget dddw_reasons = new DropdownButton<int>(
   onChanged: (int newValue) {
     setState(() {
       _reason = newValue;
+      if (newValue == 4)
+        {_extendedmode = true;} else
+        {_extendedmode = false;}
     });
   }
 );
@@ -669,123 +754,121 @@ Widget dddw_timecompense_to = new DropdownButton<DateTime>(
   }
 );
 
+if (_syncingmode == false) {
+
+chld =
+[
+  new Row(
+    children: <Widget>[
+     new Expanded(child: new Text('Буду отсутствовать: ')),
+   ]
+  ),
+  new Row(
+    children: <Widget>[
+      new Expanded (child: new Text('С ')),
+      new Expanded (child: new TextField(controller: _controller_datemiss_from )),
+      dddw_timemiss_from
+    ]
+  ),
+  new Row(
+    children: <Widget>[
+      new Expanded (child: new Text('По ')),
+      new Expanded (child: new TextField(controller: _controller_datemiss_to )),
+      dddw_timemiss_to
+    ]
+  ),
+  new Row(
+    children: <Widget>[
+      new Expanded (child: new Text('Причина ')),
+      dddw_reasons
+    ]
+  ),
+  new Row(
+    children: <Widget>[
+      new Expanded (child: new Text('Комментарий ')),
+      new Expanded (child: new TextField(controller: _controller_comment ))
+    ]
+  )
+
+];
 
 
-return new Column(
-  children: <Widget>[
-    new Row(
-      children: <Widget>[
-       new Expanded(child: new Text('Буду отсутствовать: ')),
-     ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('С ')),
-        new Expanded (child: new TextField(controller: _controller_datemiss_from )),
-        dddw_timemiss_from
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('По ')),
-        new Expanded (child: new TextField(controller: _controller_datemiss_to )),
-        dddw_timemiss_to
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('Причина ')),
-        dddw_reasons
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('Комментарий ')),
-        new Expanded (child: new TextField(controller: _controller_comment ))
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-       new Expanded(child: new Text('Обязуюсь отработать: '))
-     ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('С ')),
-        new Expanded (child: new TextField(controller: _controller_datecompense_from )),
-        dddw_timecompense_from
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new Text('По ')),
-        new Expanded (child: new TextField(controller: _controller_datecompense_to  )),
-        dddw_timecompense_to
-      ]
-    ),
-    new Row(
-      children: <Widget>[
-        new Expanded (child: new RaisedButton
-        ( child: new Text('ОК') ,
-          color: Colors.blue,
 
-          //Заносим заявку в локальную таблицу
-          onPressed: () {
+if (_extendedmode == true) {
 
-          }
-
-
-        )),
-
-        new Expanded (child: new RaisedButton
-        ( child: new Text('insertEntry') ,
-          color: Colors.pink,
-
-          onPressed: () {
-
-                    insertEntry();
-            //Такой парсинг отлично работает
-            //_testdate = DateTime.parse('2017-09-18');
-            //print(_testdate);
-          }
-
-
-        )),
-
-        new Expanded (child: new RaisedButton
-        ( child: new Text('заслать в кота') ,
-          color: Colors.yellow,
-
-          onPressed: () {
-
-            saveToCat();
-
-          }
-
-
-        )),
-
-        new Expanded (child: new RaisedButton
-        ( child: new Text('определить person_id') ,
-          color: Colors.indigo,
-
-          onPressed: () {
-             print(widget.cfg.personid);
-        }
-
-
-        )),
-
-
-      ]
-
-    )
-  ]
-
+chld.add(
+  new Row(
+    children: <Widget>[
+     new Expanded(child: new Text('Обязуюсь отработать: '))
+   ]
+  )
 );
 
+chld.add(
+new Row(
+  children: <Widget>[
+    new Expanded (child: new Text('С ')),
+    new Expanded (child: new TextField(controller: _controller_datecompense_from )),
+    dddw_timecompense_from
+  ]
+));
 
+chld.add(
+new Row(
+  children: <Widget>[
+    new Expanded (child: new Text('По ')),
+    new Expanded (child: new TextField(controller: _controller_datecompense_to  )),
+    dddw_timecompense_to
+  ]
+));
+}
+
+chld.add(
+  new Row(
+    children: <Widget>[
+
+      new Expanded (child: new RaisedButton
+      ( child: new Text('СОЗДАТЬ'),
+        color: Colors.green,
+        onPressed: () {
+                setState((){_syncingmode = true;});
+                insertEntry().then((int){saveToCat();}); //не понимаю накой тут параметр int
+        }
+      )),
+    ]
+
+  )
+);
+
+} else
+{
+  chld =
+  [
+    new Row(
+      children: <Widget>[
+       new Expanded(child: new Text('Синхронизация с котом . . .')),
+     ]
+    )
+  ];
+}
+
+
+Widget maincol = new Column(children: chld);
+return maincol;
 
 
   } //widget_build
 } //MyEntry
+
+
+//Работает, отлично конструирует общую дату
+//var date1 = DateTime.parse(_datemiss_from);
+//var date2 = _timemiss_from;
+//var date3 = new DateTime(date1.year, date1.month, date1.day, date2.hour,
+// date2.minute);
+
+
+
+//Такой парсинг отлично работает
+//_testdate = DateTime.parse('2017-09-18');
+//print(_testdate);
