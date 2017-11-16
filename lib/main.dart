@@ -476,7 +476,7 @@ String   _comment;
 DateTime _testdate;
 
 bool _extendedmode;
-bool _syncingmode;
+int _syncingmode; //0 - новая заявка, 1 - синхронизируем, 2 - "создать еще"
 
 List<Widget> chld;
 
@@ -490,27 +490,32 @@ final TextEditingController _controller_comment = new TextEditingController();
 
 void initForm() {
 
-  _datemiss_from = '2018-03-02';
-  _datemiss_to = '2018-03-02';
-  _reason = 4;
+  _extendedmode = false;
 
-  _datecompense_from = '2018-03-02';
-  _datecompense_to = '2018-03-02';
+  DateTime tmrw = new DateTime.now().add(new Duration(days:1));
 
-  _timemiss_from = new DateTime(2018,03,02,10,30);
-  _timemiss_to = new DateTime(2018,03,02,19,30);
-  _timecompense_from = new DateTime(2018,03,02,9,15);
-  _timecompense_to = new DateTime(2018,03,02,18,15);
+  _controller_datemiss_from.text = tmrw.toString().substring(0, 10);
+  _controller_datemiss_to.text = tmrw.toString().substring(0, 10);
+  _reason = 1;
+
+  _controller_datecompense_from.text = "";
+  _controller_datecompense_to.text = "";
+
+  _timemiss_from = new DateTime(2018,03,02,9,00);
+  _timemiss_to = new DateTime(2018,03,02,18,00);
+  _timecompense_from = null;
+  _timecompense_to = null;
+
+  _controller_comment.text = "";
 
 
-}
+} //end of initForm()
 
 @override
 void initState() {
   super.initState();
-  initForm();
-  _extendedmode = true; //заглушка
-  _syncingmode = true;
+
+  _syncingmode = 1;
 
   _controller_datemiss_from.text = _datemiss_from;
   _controller_datemiss_to.text = _datemiss_to;
@@ -533,6 +538,8 @@ void initState() {
   _controller_comment.addListener(() {
     _comment = _controller_comment.text;
   });
+
+  initForm();
 
 saveToCat();
 } //end of InitState
@@ -586,11 +593,6 @@ if (_extendedmode) {
   int id1 = await widget.cfg.database.rawInsert(insertstr);
 
 
-    //Отладка. Попробуем селектнуть count(*) из новой таблицы и распечатать
-    //List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
-    //print(list[0]['ddateb']);
-
-
   });
 
 
@@ -630,20 +632,21 @@ try {
   await widget.cfg.database.rawDelete("DELETE FROM new_request");
   List<Map> ltest = await widget.cfg.database.rawQuery("SELECT count(*) cnt FROM new_request");
 
-  setState((){_syncingmode = false;});
+  initForm();
+  setState((){
+    _syncingmode = 2;
+  });
 
 
 }
 catch(exception) {
-  //print("ЫЫЫ: ничего не вставилось");
   new Timer(const Duration(seconds: 10), saveToCat);
 }
 
 
 } else
 {
-  //print("ЫЫЫ: нечего вставлять");
-  setState((){_syncingmode = false;});
+  setState((){_syncingmode = 0;});
 }
 
 } //end of SaveToCat
@@ -682,7 +685,7 @@ Widget dddw_reasons = new DropdownButton<int>(
   onChanged: (int newValue) {
     setState(() {
       _reason = newValue;
-      if (newValue == 4)
+      if (newValue == 4 || newValue == 0 || newValue == 5)
         {_extendedmode = true;} else
         {_extendedmode = false;}
     });
@@ -754,7 +757,7 @@ Widget dddw_timecompense_to = new DropdownButton<DateTime>(
   }
 );
 
-if (_syncingmode == false) {
+if (_syncingmode == 0) {
 
 chld =
 [
@@ -831,7 +834,7 @@ chld.add(
       ( child: new Text('СОЗДАТЬ'),
         color: Colors.green,
         onPressed: () {
-                setState((){_syncingmode = true;});
+                setState((){_syncingmode = 1;});
                 insertEntry().then((int){saveToCat();}); //не понимаю накой тут параметр int
         }
       )),
@@ -840,13 +843,30 @@ chld.add(
   )
 );
 
-} else
+} else if (_syncingmode == 1)
 {
   chld =
   [
     new Row(
       children: <Widget>[
        new Expanded(child: new Text('Синхронизация с котом . . .')),
+     ]
+    )
+  ];
+} else
+{
+  chld =
+  [
+    new Row(
+      children: <Widget>[
+       new Expanded(child: new Text('Отправлено!')),
+       new Expanded (child: new RaisedButton
+       ( child: new Text('СОЗДАТЬ ЕЩЕ'),
+         color: Colors.green,
+         onPressed: () {
+                 setState((){_syncingmode = 0;});
+         }
+       )),
      ]
     )
   ];
@@ -861,14 +881,10 @@ return maincol;
 } //MyEntry
 
 
-//Работает, отлично конструирует общую дату
-//var date1 = DateTime.parse(_datemiss_from);
-//var date2 = _timemiss_from;
-//var date3 = new DateTime(date1.year, date1.month, date1.day, date2.hour,
-// date2.minute);
-
-
-
 //Такой парсинг отлично работает
 //_testdate = DateTime.parse('2017-09-18');
 //print(_testdate);
+
+//Отладка. Попробуем селектнуть count(*) из новой таблицы и распечатать
+//List<Map> list = await widget.cfg.database.rawQuery("SELECT ddateb, ddatee from new_request");
+//print(list[0]['ddateb']);
