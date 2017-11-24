@@ -348,9 +348,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text(widget.title),
-      ),
       body: new Container(
         padding: const EdgeInsets.all(16.0),
         child: new Column(
@@ -427,9 +424,6 @@ final TextEditingController _controller = new TextEditingController();
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text("Настройки подключения")
-      ),
       body: new Container(
         padding: const EdgeInsets.all(32.0),
         child: new Column(
