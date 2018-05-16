@@ -1,10 +1,12 @@
 import 'dart:async';
+
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+
 import 'package:diod/config/app_config.dart';
 import 'package:diod/data/data_sync.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AppData {
   AppData(AppConfig config) : env = config.env, version = config.databaseVersion;
@@ -22,9 +24,11 @@ class AppData {
 
     dbPath = '$currentPath/$env.db';
     schemaPath = 'lib/data/schemas/v$version.sql';
+    List<String> schemaExps = (await rootBundle.loadString(schemaPath)).split(';');
+
     db = await openDatabase(dbPath, version: version,
       onCreate: (Database db, int version) async {
-        await db.execute(await rootBundle.loadString(schemaPath));
+        await Future.wait(schemaExps.map((exp) async => await db.execute(exp)));
       },
       onOpen: (Database db) async {
         print('Started database');

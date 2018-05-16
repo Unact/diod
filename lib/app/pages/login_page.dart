@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:diod/main.dart';
+
+import 'package:diod/app/app.dart';
 import 'package:diod/app/modules/api.dart';
 import 'package:diod/app/utils/dialogs.dart';
 
@@ -11,29 +14,33 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final GlobalKey<FormState> _formKey = new GlobalKey<FormState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+
   String _username;
   String _password;
-  final _formKey = new GlobalKey<FormState>();
 
-  void _submit() async {
-    _formKey.currentState.save();
-    Dialogs.showLoading(context);
-
+  Future<void> _submit() async {
     try {
+      _formKey.currentState.save();
+      Dialogs.showLoading(context);
       await App.application.api.login(_username, _password);
-      await App.application.data.dataSync.importData();
-
-      Navigator.pop(context);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
-      Navigator.pop(context);
-      Dialogs.showMsg(context, 'Ошибка', e.errorMsg);
+      _showErrorSnackBar(e.errorMsg);
     }
+  }
+
+  void _showErrorSnackBar(String content) {
+    _scaffoldKey.currentState?.showSnackBar(new SnackBar(
+      content: new Text(content)
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
+      key: _scaffoldKey,
       appBar: new AppBar(
         title: new Text('Войти в приложение'),
         automaticallyImplyLeading: false,

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import 'package:diod/config/app_config.dart';
+
 import 'package:diod/app/models/user.dart';
+import 'package:diod/config/app_config.dart';
 
 class Api {
   Api(AppConfig config) :

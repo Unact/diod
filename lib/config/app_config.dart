@@ -1,9 +1,10 @@
-import 'package:diod/app/pages/home_page.dart';
-import 'package:diod/app/pages/login_page.dart';
-import 'package:diod/app/pages/info_page.dart';
-import 'package:diod/app/pages/schedule_request_page.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
+
+import 'package:diod/app/pages/home_page.dart';
+import 'package:diod/app/pages/login_page.dart';
+import 'package:diod/app/pages/person_page.dart';
+import 'package:diod/app/pages/schedule_request_page.dart';
 
 class AppConfig {
   AppConfig({
@@ -19,7 +20,7 @@ class AppConfig {
   final routes = {
     '/': (BuildContext context) => new HomePage(),
     '/login': (BuildContext context) => new LoginPage(),
-    '/info': (BuildContext context) => new InfoPage(),
+    '/person': (BuildContext context) => new PersonPage(),
     '/schedule_request': (BuildContext context) => new ScheduleRequestPage()
   };
 }

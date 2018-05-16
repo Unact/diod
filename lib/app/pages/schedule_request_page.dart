@@ -1,18 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:diod/app/widgets/date_time_picker.dart';
+
+import 'package:diod/app/app.dart';
 import 'package:diod/app/models/user.dart';
 import 'package:diod/app/models/reason.dart';
 import 'package:diod/app/models/schedule_request.dart';
 import 'package:diod/app/modules/api.dart';
 import 'package:diod/app/utils/dialogs.dart';
-import 'package:diod/main.dart';
+import 'package:diod/app/widgets/date_time_picker.dart';
 
 class ScheduleRequestPage extends StatefulWidget {
 
   @override
   _ScheduleRequestPageState createState() => new _ScheduleRequestPageState();
 }
-
 
 class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
   DateTime _fromDate;
@@ -26,14 +28,13 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
   String _reasonDropdownHint;
   List<Reason> _reasons;
   bool _needFutureDates = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
 
   Reason _reason;
   String _comments;
   User _user;
 
-  void _submit() async {
-    Dialogs.showLoading(context);
-
+  Future<void> _submit() async {
     try {
       Map<String, dynamic> newReq = {
         'person': _user.personId,
@@ -58,15 +59,25 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
           _toTimeFuture.minute
         ).toString();
       }
+
+      Dialogs.showLoading(context);
       await ScheduleRequest.create(newReq);
       await App.application.data.dataSync.exportData();
-      await App.application.data.dataSync.importData();
       Navigator.pop(context);
-      Navigator.pop(context);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
-      Navigator.pop(context);
-      Dialogs.showMsg(context, 'Ошибка', e.errorMsg);
+      _showErrorSnackBar(e.errorMsg);
     }
+  }
+
+   void _showErrorSnackBar(String content) {
+    _scaffoldKey.currentState?.showSnackBar(new SnackBar(
+      content: new Text(content),
+      action: new SnackBarAction(
+        label: 'Повторить',
+        onPressed: _submit
+      )
+    ));
   }
 
   @override
@@ -75,7 +86,7 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
 
     super.initState();
     _initStateAsync();
-    this.setState(() {
+    setState(() {
       _user = user;
       _reasonDropdownHint = 'Причина';
       _comments = '';
@@ -112,6 +123,7 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
+      key: _scaffoldKey,
       appBar: new AppBar(title: const Text('Заявка на изменение графика')),
       floatingActionButton: new Builder(builder: _buildActionButton),
       body: new DropdownButtonHideUnderline(

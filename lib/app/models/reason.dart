@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:diod/main.dart';
+
+import 'package:diod/app/app.dart';
 
 class Reason {
   static String _tableName = 'reasons';

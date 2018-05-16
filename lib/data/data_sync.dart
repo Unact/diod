@@ -1,12 +1,14 @@
 import 'dart:async';
-import 'package:diod/main.dart';
-import 'package:diod/app/models/schedule_request.dart';
+
+import 'package:diod/app/app.dart';
 import 'package:diod/app/models/reason.dart';
+import 'package:diod/app/models/schedule_request.dart';
 import 'package:diod/app/models/user.dart';
 
 class DataSync {
   get lastSyncTime {
-    return DateTime.parse(App.application.data.prefs.getString('lastSyncTime') ?? new DateTime.now().toString());
+    String time = App.application.data.prefs.getString('lastSyncTime');
+    return time != null ? DateTime.parse(time) : null;
   }
   set lastSyncTime(val) => App.application.data.prefs.setString('lastSyncTime', val.toString());
 

@@ -1,4 +1,4 @@
-import 'package:diod/main.dart';
+import 'package:diod/app/app.dart';
 import 'package:diod/config/app_config.dart';
 
 void main() {

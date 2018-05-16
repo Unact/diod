@@ -1,18 +1,19 @@
-import 'package:diod/main.dart';
-import 'package:diod/app/models/user.dart';
 import 'package:flutter/material.dart';
 
+import 'package:diod/app/app.dart';
+import 'package:diod/app/models/user.dart';
 
-class InfoPage extends StatefulWidget {
-  InfoPage({
+
+class PersonPage extends StatefulWidget {
+  PersonPage({
     Key key
   }) : super(key: key);
 
   @override
-  _InfoPageState createState() => new _InfoPageState();
+  _PersonPageState createState() => new _PersonPageState();
 }
 
-class _InfoPageState extends State<InfoPage> {
+class _PersonPageState extends State<PersonPage> {
   String _personName;
   String _email;
 
