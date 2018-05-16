@@ -10,11 +10,13 @@ class AppConfig {
   AppConfig({
     @required this.env,
     @required this.databaseVersion,
-    @required this.apiBaseUrl
+    @required this.apiBaseUrl,
+    @required this.sentryDsn
   });
 
   final String env;
   final String apiBaseUrl;
+  final String sentryDsn;
   final String clientId = 'diod';
   final int databaseVersion;
   final routes = {

@@ -5,6 +5,7 @@ void main() {
   App.setup(AppConfig(
     env: 'development',
     databaseVersion: 1,
-    apiBaseUrl: 'http://localhost:3000/api/'
+    apiBaseUrl: 'http://localhost:3000/api/',
+    sentryDsn: ''
   )).run();
 }
