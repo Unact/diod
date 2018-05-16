@@ -27,6 +27,7 @@ class _LoginPageState extends State<LoginPage> {
       await App.application.api.login(_username, _password);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
+      Navigator.pop(context);
       _showErrorSnackBar(e.errorMsg);
     }
   }

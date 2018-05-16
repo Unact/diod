@@ -11,13 +11,11 @@ import 'package:diod/data/app_data.dart';
 class App {
   App.setup(this.config) :
     data = new AppData(config),
-    api = new Api(config),
-    sentry = new SentryClient(dsn: config.sentryDsn)
+    api = new Api(config)
   {
     _setupEnv();
     _application = this;
   }
-
 
   static App _application;
   static App get application => _application;
@@ -26,7 +24,7 @@ class App {
   final AppConfig config;
   final AppData data;
   final Api api;
-  final SentryClient sentry;
+  SentryClient sentry;
   Widget widget;
 
   Future<void> run() async {
@@ -39,6 +37,7 @@ class App {
 
   void _setupEnv() {
     if (config.env != 'development') {
+      sentry = new SentryClient(dsn: config.sentryDsn);
       FlutterError.onError = (errorDetails) async {
         await sentry.captureException(
           exception: errorDetails.exception,
