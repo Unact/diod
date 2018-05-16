@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:sentry/sentry.dart';
+import 'package:sentry/sentry.dart' as sentryLib;
 
+import 'package:diod/app/models/user.dart';
 import 'package:diod/app/modules/api.dart';
 import 'package:diod/config/app_config.dart';
 import 'package:diod/data/app_data.dart';
@@ -24,7 +25,7 @@ class App {
   final AppConfig config;
   final AppData data;
   final Api api;
-  SentryClient sentry;
+  sentryLib.SentryClient sentry;
   Widget widget;
 
   Future<void> run() async {
@@ -37,12 +38,20 @@ class App {
 
   void _setupEnv() {
     if (config.env != 'development') {
-      sentry = new SentryClient(dsn: config.sentryDsn);
+      sentry = new sentryLib.SentryClient(dsn: config.sentryDsn);
+
       FlutterError.onError = (errorDetails) async {
-        await sentry.captureException(
+        final sentryLib.Event event = new sentryLib.Event(
           exception: errorDetails.exception,
           stackTrace: errorDetails.stack,
+          userContext: sentryLib.User(
+            id: config.clientId,
+            username: User.currentUser()?.username ?? 'guest'
+          ),
+          environment: config.env
         );
+
+        await sentry.capture(event: event);
       };
     }
   }
