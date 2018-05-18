@@ -66,6 +66,7 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
       Navigator.pop(context);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
+      Navigator.pop(context);
       _showErrorSnackBar(e.errorMsg);
     }
   }

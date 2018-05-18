@@ -25,6 +25,7 @@ class AppData {
     dbPath = '$currentPath/$env.db';
     schemaPath = 'lib/data/schemas/v$version.sql';
     List<String> schemaExps = (await rootBundle.loadString(schemaPath)).split(';');
+    schemaExps.removeLast(); // Уберем перенос строки
 
     db = await openDatabase(dbPath, version: version,
       onCreate: (Database db, int version) async {

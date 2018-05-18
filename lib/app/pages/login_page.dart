@@ -46,46 +46,50 @@ class _LoginPageState extends State<LoginPage> {
         title: new Text('Войти в приложение'),
         automaticallyImplyLeading: false,
       ),
-      body: new Container(
-        padding: const EdgeInsets.only(top: 180.0, left: 16.0, right: 16.0),
-        child: new Form(
-          key: _formKey,
-          child: new Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              new TextFormField(
-                onSaved: (val) => _username = val,
-                keyboardType: TextInputType.url,
-                decoration: new InputDecoration(
-                  labelText: 'Телефон или e-mail или login',
-                ),
-              ),
-              new TextFormField(
-                onSaved: (val) => _password = val,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                decoration: new InputDecoration(
-                  labelText: 'Пароль'
-                ),
-              ),
-              new Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: new Container(
-                  width: 100.0,
-                  child: new RaisedButton(
-                    onPressed: _submit,
-                    color: Colors.blueAccent,
-                    textColor: Colors.white,
-                    child: new Text('Войти'),
-                  ),
-                )
-              ),
-            ]
-          )
-        )
-      ),
+      body: new ListView(
+        children: <Widget>[
+          new Container(
+              padding: const EdgeInsets.only(top: 180.0, left: 16.0, right: 16.0),
+              child: new Form(
+                  key: _formKey,
+                  child: new Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        new TextFormField(
+                          onSaved: (val) => _username = val,
+                          keyboardType: TextInputType.url,
+                          decoration: new InputDecoration(
+                            labelText: 'Телефон или e-mail или login',
+                          ),
+                        ),
+                        new TextFormField(
+                          onSaved: (val) => _password = val,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          decoration: new InputDecoration(
+                              labelText: 'Пароль'
+                          ),
+                        ),
+                        new Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: new Container(
+                              width: 100.0,
+                              child: new RaisedButton(
+                                onPressed: _submit,
+                                color: Colors.blueAccent,
+                                textColor: Colors.white,
+                                child: new Text('Войти'),
+                              ),
+                            )
+                        ),
+                      ]
+                  )
+              )
+          ),
+        ],
+      )
     );
   }
 }
