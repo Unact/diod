@@ -29,4 +29,9 @@ class DataSync {
 
     lastSyncTime = new DateTime.now();
   }
+
+  Future<void> removeData() async {
+    await ScheduleRequest.deleteAll();
+    await Reason.deleteAll();
+  }
 }

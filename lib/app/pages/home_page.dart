@@ -22,6 +22,8 @@ class _HomePageState extends State<HomePage> {
   List<ScheduleRequest> _scheduleRequests;
 
   Future<void> _sync() async {
+    _scheduleRequests = await ScheduleRequest.all();
+    setState(() {});
     if (App.application.api.isLogged()) {
       try {
         await App.application.data.dataSync.importData();
@@ -29,6 +31,8 @@ class _HomePageState extends State<HomePage> {
         setState(() {});
       } on ApiException catch(e) {
         _showErrorSnackBar(e.errorMsg);
+      } catch(e) {
+        _showErrorSnackBar('Произошла ошибка');
       }
     }
   }

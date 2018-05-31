@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -11,7 +12,7 @@ class Api {
     apiBaseUrl = config.apiBaseUrl,
     clientId = config.clientId;
 
-  final String apiBaseUrl;
+  String apiBaseUrl;
   final String clientId;
   final JsonDecoder _decoder = JsonDecoder();
   final JsonEncoder _encoder = JsonEncoder();
@@ -35,6 +36,8 @@ class Api {
         await relogin();
         return parseResponse(await _get(method));
       }
+    } on SocketException {
+      throw new ApiConnException();
     }
   }
 
@@ -46,6 +49,8 @@ class Api {
         await relogin();
         return parseResponse(await _post(method, body));
       }
+    } on SocketException {
+      throw new ApiConnException();
     }
   }
 
@@ -88,14 +93,18 @@ class Api {
   }
 
   Future<void> _authenticate(String username, String password) async {
-    http.Response response = await http.post(
-      this.apiBaseUrl + 'v1/authenticate',
-      headers: {
-        'Authorization': 'RApi client_id=$clientId,login=$username,password=$password'
-      }
-    );
+    try {
+      http.Response response = await http.post(
+        this.apiBaseUrl + 'v1/authenticate',
+        headers: {
+          'Authorization': 'RApi client_id=$clientId,login=$username,password=$password'
+        }
+      );
 
-    _token = parseResponse(response)['token'];
+      _token = parseResponse(response)['token'];
+    } on SocketException {
+      throw new ApiConnException();
+    }
   }
 
   dynamic parseResponse(http.Response response) {
@@ -129,4 +138,8 @@ class ApiException implements Exception {
 
 class AuthException extends ApiException {
   AuthException(errorMsg) : super(errorMsg, 401);
+}
+
+class ApiConnException extends ApiException {
+  ApiConnException() : super('Нет связи', 503);
 }

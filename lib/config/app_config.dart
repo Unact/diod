@@ -18,6 +18,7 @@ class AppConfig {
   final String apiBaseUrl;
   final String sentryDsn;
   final String clientId = 'diod';
+  final String secretKeyWord = '5005';
   final int databaseVersion;
   final routes = {
     '/': (BuildContext context) => new HomePage(),

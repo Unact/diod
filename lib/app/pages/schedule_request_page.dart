@@ -35,8 +35,10 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
   User _user;
 
   Future<void> _submit() async {
+    ScheduleRequest newScheduleRequest;
     try {
       Map<String, dynamic> newReq = {
+        'person_name': _user.personName,
         'person': _user.personId,
         'ddateb': new DateTime(_fromDate.year, _fromDate.month, _fromDate.day, _fromTime.hour, _fromTime.minute).toString(),
         'ddatee': new DateTime(_toDate.year, _toDate.month, _toDate.day, _toTime.hour, _toTime.minute).toString(),
@@ -61,13 +63,17 @@ class _ScheduleRequestPageState extends State<ScheduleRequestPage> {
       }
 
       Dialogs.showLoading(context);
-      await ScheduleRequest.create(newReq);
+      newScheduleRequest = await ScheduleRequest.create(newReq);
       await App.application.data.dataSync.exportData();
       Navigator.pop(context);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
+      await newScheduleRequest.delete();
       Navigator.pop(context);
       _showErrorSnackBar(e.errorMsg);
+    } catch(e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Произошла ошибка');
     }
   }
 

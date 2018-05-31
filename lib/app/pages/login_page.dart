@@ -19,16 +19,31 @@ class _LoginPageState extends State<LoginPage> {
 
   String _username;
   String _password;
+  String _baseApiUrl;
+  bool _showBaseApiUrl = false;
 
   Future<void> _submit() async {
+    _formKey.currentState.save();
+    if (_username == _password && _username == App.application.config.secretKeyWord) {
+      setState(() {
+        _formKey.currentState.reset();
+        _showBaseApiUrl = true;
+      });
+      return null;
+    }
     try {
-      _formKey.currentState.save();
       Dialogs.showLoading(context);
+      if (_showBaseApiUrl) {
+        App.application.api.apiBaseUrl = _baseApiUrl;
+      }
       await App.application.api.login(_username, _password);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
       Navigator.pop(context);
       _showErrorSnackBar(e.errorMsg);
+    } catch(e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Произошла ошибка');
     }
   }
 
@@ -69,9 +84,17 @@ class _LoginPageState extends State<LoginPage> {
                           keyboardType: TextInputType.number,
                           obscureText: true,
                           decoration: new InputDecoration(
-                              labelText: 'Пароль'
+                            labelText: 'Пароль'
                           ),
                         ),
+                        _showBaseApiUrl ? new TextFormField(
+                          initialValue: App.application.api.apiBaseUrl,
+                          onSaved: (val) => _baseApiUrl = val,
+                          keyboardType: TextInputType.url,
+                          decoration: new InputDecoration(
+                            labelText: 'Api Url'
+                          ),
+                        ) : new Container(),
                         new Padding(
                             padding: const EdgeInsets.symmetric(vertical: 16.0),
                             child: new Container(
