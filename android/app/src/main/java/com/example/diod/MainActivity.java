@@ -1,4 +1,4 @@
-package com.yourcompany.fltext;
+package com.example.diod;
 
 import android.os.Bundle;
 
