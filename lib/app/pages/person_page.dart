@@ -69,26 +69,30 @@ class _PersonPageState extends State<PersonPage> {
               color: Colors.blue[500],
             ),
           ),
-          new GestureDetector(
-            onTap: () async {
-              showDialog(context: context,
-                builder: (BuildContext context) {
-                  return new AlertDialog(
-                    title: new Text("Ошибка"),
-                    content: new Text("Ошибка"),
-                    actions: <Widget>[
-                      new FlatButton(
-                        child: new Text('Получи ошибку'),
-                        onPressed: (){
-                          throw "Это ошибка!";
-                        }
-                      )
-                    ],
-                  );
-                }
-              );
-            },
-            child: new Text("Получи ошибку")
+          new ListTile(
+            title: new RaisedButton(
+              onPressed: (){
+                showDialog(context: context,
+                  builder: (BuildContext context) {
+                    return new AlertDialog(
+                      title: new Text('Ошибка'),
+                      content: new Text('Ошибка'),
+                      actions: <Widget>[
+                        new FlatButton(
+                          child: new Text('Получи ошибку'),
+                          onPressed: (){
+                            throw 'Это ошибка!';
+                          }
+                        )
+                      ],
+                    );
+                  }
+                );
+              },
+              color: Colors.blueAccent,
+              textColor: Colors.white,
+              child: new Text('Получить ошибку'),
+            ),
           ),
         ]
       )

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
+import 'package:diod/app/app.dart';
 import 'package:diod/app/pages/home_page.dart';
 import 'package:diod/app/pages/login_page.dart';
 import 'package:diod/app/pages/person_page.dart';
@@ -15,7 +18,7 @@ class AppConfig {
   });
 
   final String env;
-  final String apiBaseUrl;
+  String apiBaseUrl;
   final String sentryDsn;
   final String clientId = 'diod';
   final String secretKeyWord = '5005';
@@ -26,4 +29,12 @@ class AppConfig {
     '/person': (BuildContext context) => new PersonPage(),
     '/schedule_request': (BuildContext context) => new ScheduleRequestPage()
   };
+
+  Future<void> save() async {
+    await App.application.data.prefs.setString('apiBaseUrl', apiBaseUrl);
+  }
+
+  void loadSaved() {
+    apiBaseUrl = App.application.data.prefs.getString('apiBaseUrl') ?? apiBaseUrl;
+  }
 }

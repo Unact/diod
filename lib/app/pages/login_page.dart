@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _showBaseApiUrl = false;
 
   Future<void> _submit() async {
-    _formKey.currentState.save();
+    _updateFormAttributes();
     if (_username == _password && _username == App.application.config.secretKeyWord) {
       setState(() {
         _formKey.currentState.reset();
@@ -33,21 +33,42 @@ class _LoginPageState extends State<LoginPage> {
     }
     try {
       Dialogs.showLoading(context);
-      if (_showBaseApiUrl) {
-        App.application.api.apiBaseUrl = _baseApiUrl;
-      }
       await App.application.api.login(_username, _password);
       Navigator.pushNamedAndRemoveUntil(context, '/', (Route<dynamic> route) => false);
     } on ApiException catch(e) {
       Navigator.pop(context);
-      _showErrorSnackBar(e.errorMsg);
+      _showSnackBar(e.errorMsg);
     } catch(e) {
       Navigator.pop(context);
-      _showErrorSnackBar('Произошла ошибка');
+      _showSnackBar('Произошла ошибка');
     }
   }
 
-  void _showErrorSnackBar(String content) {
+  Future<void> _getNewPassword() async {
+    _updateFormAttributes();
+    if (_username == null || _username == '') {
+      _showSnackBar('Не заполнено поле с логином');
+    } else {
+      try {
+        await App.application.api.resetPassword(_username);
+        _showSnackBar('Пароль отправлен на почту');
+      } on ApiException catch(e) {
+        _showSnackBar(e.errorMsg);
+      } catch(e) {
+        _showSnackBar('Произошла ошибка');
+      }
+    }
+  }
+
+  void _updateFormAttributes() {
+    _formKey.currentState.save();
+    if (_showBaseApiUrl) {
+        App.application.config.apiBaseUrl = _baseApiUrl;
+        App.application.config.save();
+      }
+  }
+
+  void _showSnackBar(String content) {
     _scaffoldKey.currentState?.showSnackBar(new SnackBar(
       content: new Text(content)
     ));
@@ -88,17 +109,20 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         _showBaseApiUrl ? new TextFormField(
-                          initialValue: App.application.api.apiBaseUrl,
+                          initialValue: App.application.config.apiBaseUrl,
                           onSaved: (val) => _baseApiUrl = val,
                           keyboardType: TextInputType.url,
                           decoration: new InputDecoration(
                             labelText: 'Api Url'
                           ),
                         ) : new Container(),
-                        new Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        new Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                          new Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
                             child: new Container(
-                              width: 100.0,
+                              width: 120.0,
                               child: new RaisedButton(
                                 onPressed: _submit,
                                 color: Colors.blueAccent,
@@ -106,7 +130,20 @@ class _LoginPageState extends State<LoginPage> {
                                 child: new Text('Войти'),
                               ),
                             )
-                        ),
+                          ),
+                          new Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                              child: new Container(
+                                width: 160.0,
+                                child: new RaisedButton(
+                                  onPressed: _getNewPassword,
+                                  color: Colors.blueAccent,
+                                  textColor: Colors.white,
+                                  child: new Text('Получить пароль'),
+                                ),
+                              )
+                          ),
+                        ],)
                       ]
                   )
               )

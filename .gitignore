@@ -9,3 +9,4 @@ packages
 pubspec.lock
 .flutter-plugins
 lib/data/secrets.json
+.app_env

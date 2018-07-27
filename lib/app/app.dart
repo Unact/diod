@@ -30,6 +30,7 @@ class App {
 
   Future<void> run() async {
     await data.setup();
+    config.loadSaved();
     widget = _buildWidget();
 
     print('Started $name in ${config.env} environment');

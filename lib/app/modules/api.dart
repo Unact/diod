@@ -4,16 +4,13 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'package:diod/app/app.dart';
 import 'package:diod/app/models/user.dart';
 import 'package:diod/config/app_config.dart';
 
 class Api {
-  Api(AppConfig config) :
-    apiBaseUrl = config.apiBaseUrl,
-    clientId = config.clientId;
+  Api(AppConfig config);
 
-  String apiBaseUrl;
-  final String clientId;
   final JsonDecoder _decoder = JsonDecoder();
   final JsonEncoder _encoder = JsonEncoder();
   String _token;
@@ -56,9 +53,9 @@ class Api {
 
   Future<http.Response> _get(String method) async {
     return await http.get(
-      this.apiBaseUrl + method,
+      App.application.config.apiBaseUrl + method,
       headers: {
-        'Authorization': 'RApi client_id=$clientId,token=$_token',
+        'Authorization': 'RApi client_id=${App.application.config.clientId},token=$_token',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -67,14 +64,27 @@ class Api {
 
   Future<http.Response> _post(String method, body) async {
     return await http.post(
-      this.apiBaseUrl + method,
+      App.application.config.apiBaseUrl + method,
       body: _encoder.convert(body),
       headers: {
-        'Authorization': 'RApi client_id=$clientId,token=$_token',
+        'Authorization': 'RApi client_id=${App.application.config.clientId},token=$_token',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     );
+  }
+
+  Future<void> resetPassword(String username) async {
+    try {
+      await http.post(
+        App.application.config.apiBaseUrl + 'v1/reset_password',
+        headers: {
+          'Authorization': 'RApi client_id=${App.application.config.clientId},login=$username'
+        }
+      );
+    } on SocketException {
+      throw new ApiConnException();
+    }
   }
 
   Future<void> login(String username, String password) async {
@@ -95,9 +105,9 @@ class Api {
   Future<void> _authenticate(String username, String password) async {
     try {
       http.Response response = await http.post(
-        this.apiBaseUrl + 'v1/authenticate',
+        App.application.config.apiBaseUrl + 'v1/authenticate',
         headers: {
-          'Authorization': 'RApi client_id=$clientId,login=$username,password=$password'
+          'Authorization': 'RApi client_id=${App.application.config.clientId},login=$username,password=$password'
         }
       );
 
