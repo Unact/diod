@@ -1,5 +1,6 @@
 name: diod
 description: Приложение для отображения расписания сотрудников отдела разработки.
+version: 1.0.0+1
 
 dependencies:
   flutter:
