@@ -1,4 +1,4 @@
-package com.example.diod;
+package ru.unact.diod;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;
