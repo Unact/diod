@@ -85,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
       body: new ListView(
         children: <Widget>[
           new Container(
-              padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0),
+              padding: const EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
               child: new Form(
                   key: _formKey,
                   child: new Column(
@@ -134,7 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                           new Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
                               child: new Container(
-                                width: 150.0,
+                                width: 160.0,
                                 child: new RaisedButton(
                                   onPressed: _getNewPassword,
                                   color: Colors.blueAccent,
