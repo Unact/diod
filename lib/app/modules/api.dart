@@ -55,7 +55,7 @@ class Api {
     return await http.get(
       App.application.config.apiBaseUrl + method,
       headers: {
-        'Authorization': 'RApi client_id=${App.application.config.clientId},token=$_token',
+        'Authorization': 'Renew client_id=${App.application.config.clientId},token=$_token',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -67,7 +67,7 @@ class Api {
       App.application.config.apiBaseUrl + method,
       body: _encoder.convert(body),
       headers: {
-        'Authorization': 'RApi client_id=${App.application.config.clientId},token=$_token',
+        'Authorization': 'Renew client_id=${App.application.config.clientId},token=$_token',
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -79,7 +79,7 @@ class Api {
       await http.post(
         App.application.config.apiBaseUrl + 'v1/reset_password',
         headers: {
-          'Authorization': 'RApi client_id=${App.application.config.clientId},login=$username'
+          'Authorization': 'Renew client_id=${App.application.config.clientId},login=$username'
         }
       );
     } on SocketException {
@@ -107,7 +107,7 @@ class Api {
       http.Response response = await http.post(
         App.application.config.apiBaseUrl + 'v1/authenticate',
         headers: {
-          'Authorization': 'RApi client_id=${App.application.config.clientId},login=$username,password=$password'
+          'Authorization': 'Renew client_id=${App.application.config.clientId},login=$username,password=$password'
         }
       );
 

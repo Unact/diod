@@ -18,7 +18,7 @@ void main() async {
   App.setup(AppConfig(
     env: development ? 'development' : 'production',
     databaseVersion: 1,
-    apiBaseUrl: '${development ? developmentUrl : 'https://rapi.unact.ru'}/api/',
+    apiBaseUrl: '${development ? developmentUrl : 'https://data.unact.ru'}/api/',
     sentryDsn: appEnv['SENTRY_DSN']
   )).run();
 }
